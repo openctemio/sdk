@@ -16,7 +16,7 @@ import (
 
 	"github.com/openctemio/sdk/pkg/client"
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 func main() {
@@ -165,11 +165,11 @@ func testPollCommands(ctx context.Context, c *client.Client) error {
 }
 
 // createSampleFindingsReport creates a sample report with findings.
-func createSampleFindingsReport() *eis.Report {
+func createSampleFindingsReport() *ctis.Report {
 	now := time.Now()
 
-	report := eis.NewReport()
-	report.Metadata = eis.ReportMetadata{
+	report := ctis.NewReport()
+	report.Metadata = ctis.ReportMetadata{
 		ID:         fmt.Sprintf("scan-%d", now.Unix()),
 		Timestamp:  now,
 		DurationMs: 5000,
@@ -177,25 +177,25 @@ func createSampleFindingsReport() *eis.Report {
 		SourceRef:  "integration-test",
 	}
 
-	report.Tool = &eis.Tool{
+	report.Tool = &ctis.Tool{
 		Name:    "semgrep",
 		Version: "1.50.0",
 		Vendor:  "Semgrep Inc.",
 	}
 
 	// Add sample findings
-	report.Findings = []eis.Finding{
+	report.Findings = []ctis.Finding{
 		{
 			ID:          "finding-1",
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       "SQL Injection vulnerability",
 			Description: "User input is directly concatenated into SQL query without proper sanitization.",
-			Severity:    eis.SeverityHigh,
+			Severity:    ctis.SeverityHigh,
 			Confidence:  90,
 			Category:    "security",
 			RuleID:      "sql-injection",
 			RuleName:    "SQL Injection Detection",
-			Location: &eis.FindingLocation{
+			Location: &ctis.FindingLocation{
 				Path:        "src/api/users.go",
 				StartLine:   45,
 				EndLine:     48,
@@ -203,10 +203,10 @@ func createSampleFindingsReport() *eis.Report {
 				EndColumn:   50,
 				Snippet:     `query := "SELECT * FROM users WHERE id = " + userID`,
 			},
-			Vulnerability: &eis.VulnerabilityDetails{
+			Vulnerability: &ctis.VulnerabilityDetails{
 				CWEID: "CWE-89",
 			},
-			Remediation: &eis.Remediation{
+			Remediation: &ctis.Remediation{
 				Recommendation: "Use parameterized queries instead of string concatenation",
 				Steps: []string{
 					"Replace string concatenation with prepared statements",
@@ -222,20 +222,20 @@ func createSampleFindingsReport() *eis.Report {
 		},
 		{
 			ID:          "finding-2",
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       "Hardcoded credentials detected",
 			Description: "API key is hardcoded in the source code.",
-			Severity:    eis.SeverityCritical,
+			Severity:    ctis.SeverityCritical,
 			Confidence:  95,
 			Category:    "security",
 			RuleID:      "hardcoded-secret",
-			Location: &eis.FindingLocation{
+			Location: &ctis.FindingLocation{
 				Path:      "src/config/config.go",
 				StartLine: 12,
 				EndLine:   12,
 				Snippet:   `apiKey := "sk_live_xxxxxxxxxxxxx"`,
 			},
-			Secret: &eis.SecretDetails{
+			Secret: &ctis.SecretDetails{
 				SecretType:  "api_key",
 				Service:     "stripe",
 				MaskedValue: "sk_live_xxx...xxx",
@@ -245,18 +245,18 @@ func createSampleFindingsReport() *eis.Report {
 		},
 		{
 			ID:          "finding-3",
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       "Cross-Site Scripting (XSS)",
 			Description: "User input is rendered without escaping in HTML template.",
-			Severity:    eis.SeverityMedium,
+			Severity:    ctis.SeverityMedium,
 			Confidence:  80,
 			RuleID:      "xss-reflected",
-			Location: &eis.FindingLocation{
+			Location: &ctis.FindingLocation{
 				Path:      "templates/user.html",
 				StartLine: 25,
 				Snippet:   `<div>{{ .UserInput }}</div>`,
 			},
-			Vulnerability: &eis.VulnerabilityDetails{
+			Vulnerability: &ctis.VulnerabilityDetails{
 				CWEID: "CWE-79",
 			},
 		},
@@ -266,32 +266,32 @@ func createSampleFindingsReport() *eis.Report {
 }
 
 // createSampleAssetsReport creates a sample report with assets only.
-func createSampleAssetsReport() *eis.Report {
+func createSampleAssetsReport() *ctis.Report {
 	now := time.Now()
 
-	report := eis.NewReport()
-	report.Metadata = eis.ReportMetadata{
+	report := ctis.NewReport()
+	report.Metadata = ctis.ReportMetadata{
 		ID:         fmt.Sprintf("asset-discovery-%d", now.Unix()),
 		Timestamp:  now,
 		SourceType: "collector",
 	}
 
-	report.Tool = &eis.Tool{
+	report.Tool = &ctis.Tool{
 		Name:    "asset-collector",
 		Version: "1.0.0",
 	}
 
-	report.Assets = []eis.Asset{
+	report.Assets = []ctis.Asset{
 		{
 			ID:          "asset-1",
-			Type:        eis.AssetTypeRepository,
+			Type:        ctis.AssetTypeRepository,
 			Value:       "github.com/example/webapp",
 			Name:        "Web Application",
 			Description: "Main web application repository",
-			Criticality: eis.CriticalityHigh,
+			Criticality: ctis.CriticalityHigh,
 			Tags:        []string{"production", "frontend"},
-			Technical: &eis.AssetTechnical{
-				Repository: &eis.RepositoryTechnical{
+			Technical: &ctis.AssetTechnical{
+				Repository: &ctis.RepositoryTechnical{
 					Platform:      "github",
 					Owner:         "example",
 					Name:          "webapp",
@@ -303,13 +303,13 @@ func createSampleAssetsReport() *eis.Report {
 		},
 		{
 			ID:          "asset-2",
-			Type:        eis.AssetTypeDomain,
+			Type:        ctis.AssetTypeDomain,
 			Value:       "api.example.com",
 			Name:        "API Domain",
-			Criticality: eis.CriticalityCritical,
+			Criticality: ctis.CriticalityCritical,
 			Tags:        []string{"production", "api"},
-			Technical: &eis.AssetTechnical{
-				Domain: &eis.DomainTechnical{
+			Technical: &ctis.AssetTechnical{
+				Domain: &ctis.DomainTechnical{
 					Registrar:   "Cloudflare",
 					Nameservers: []string{"ns1.cloudflare.com", "ns2.cloudflare.com"},
 				},
@@ -317,16 +317,16 @@ func createSampleAssetsReport() *eis.Report {
 		},
 		{
 			ID:          "asset-3",
-			Type:        eis.AssetTypeIPAddress,
+			Type:        ctis.AssetTypeIPAddress,
 			Value:       "10.0.1.100",
 			Name:        "Database Server",
-			Criticality: eis.CriticalityCritical,
+			Criticality: ctis.CriticalityCritical,
 			Tags:        []string{"internal", "database"},
-			Technical: &eis.AssetTechnical{
-				IPAddress: &eis.IPAddressTechnical{
+			Technical: &ctis.AssetTechnical{
+				IPAddress: &ctis.IPAddressTechnical{
 					Version:  4,
 					Hostname: "db-primary.internal",
-					Ports: []eis.PortInfo{
+					Ports: []ctis.PortInfo{
 						{Port: 5432, Protocol: "tcp", Service: "postgresql", State: "open"},
 					},
 				},
@@ -338,47 +338,47 @@ func createSampleAssetsReport() *eis.Report {
 }
 
 // createCombinedReport creates a report with both assets and findings.
-func createCombinedReport() *eis.Report {
+func createCombinedReport() *ctis.Report {
 	now := time.Now()
 
-	report := eis.NewReport()
-	report.Metadata = eis.ReportMetadata{
+	report := ctis.NewReport()
+	report.Metadata = ctis.ReportMetadata{
 		ID:         fmt.Sprintf("full-scan-%d", now.Unix()),
 		Timestamp:  now,
 		DurationMs: 30000,
 		SourceType: "scanner",
 	}
 
-	report.Tool = &eis.Tool{
+	report.Tool = &ctis.Tool{
 		Name:    "trivy",
 		Version: "0.48.0",
 		Vendor:  "Aqua Security",
 	}
 
 	// Add assets
-	report.Assets = []eis.Asset{
+	report.Assets = []ctis.Asset{
 		{
 			ID:          "container-1",
-			Type:        eis.AssetTypeContainer,
+			Type:        ctis.AssetTypeContainer,
 			Value:       "docker.io/example/app:v1.2.3",
 			Name:        "Application Container",
-			Criticality: eis.CriticalityHigh,
+			Criticality: ctis.CriticalityHigh,
 			Tags:        []string{"production", "container"},
 		},
 	}
 
 	// Add findings referencing the asset
-	report.Findings = []eis.Finding{
+	report.Findings = []ctis.Finding{
 		{
 			ID:          "vuln-1",
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       "CVE-2024-1234: Critical vulnerability in openssl",
 			Description: "A critical vulnerability in OpenSSL allows remote code execution.",
-			Severity:    eis.SeverityCritical,
+			Severity:    ctis.SeverityCritical,
 			Confidence:  100,
 			RuleID:      "CVE-2024-1234",
 			AssetRef:    "container-1", // Reference to asset
-			Vulnerability: &eis.VulnerabilityDetails{
+			Vulnerability: &ctis.VulnerabilityDetails{
 				CVEID:            "CVE-2024-1234",
 				CWEID:            "CWE-119",
 				CVSSVersion:      "3.1",
@@ -390,19 +390,19 @@ func createCombinedReport() *eis.Report {
 				Ecosystem:        "debian",
 				ExploitAvailable: true,
 			},
-			Remediation: &eis.Remediation{
+			Remediation: &ctis.Remediation{
 				Recommendation: "Upgrade openssl to version 1.1.1w or later",
 				FixAvailable:   true,
 			},
 		},
 		{
 			ID:       "vuln-2",
-			Type:     eis.FindingTypeVulnerability,
+			Type:     ctis.FindingTypeVulnerability,
 			Title:    "CVE-2024-5678: High severity in curl",
-			Severity: eis.SeverityHigh,
+			Severity: ctis.SeverityHigh,
 			RuleID:   "CVE-2024-5678",
 			AssetRef: "container-1",
-			Vulnerability: &eis.VulnerabilityDetails{
+			Vulnerability: &ctis.VulnerabilityDetails{
 				CVEID:           "CVE-2024-5678",
 				CVSSScore:       7.5,
 				Package:         "curl",

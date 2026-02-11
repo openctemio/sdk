@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // =============================================================================
@@ -266,10 +266,10 @@ type SecretFinding struct {
 }
 
 // =============================================================================
-// Parser Interface - For converting tool output to EIS
+// Parser Interface - For converting tool output to CTIS
 // =============================================================================
 
-// Parser converts scanner output to EIS format.
+// Parser converts scanner output to CTIS format.
 // Implement this interface to support custom output formats.
 type Parser interface {
 	// Name returns the parser name (e.g., "sarif", "json", "custom-trivy")
@@ -278,8 +278,8 @@ type Parser interface {
 	// SupportedFormats returns the output formats this parser can handle
 	SupportedFormats() []string
 
-	// Parse converts raw output to EIS report
-	Parse(ctx context.Context, data []byte, opts *ParseOptions) (*eis.Report, error)
+	// Parse converts raw output to CTIS report
+	Parse(ctx context.Context, data []byte, opts *ParseOptions) (*ctis.Report, error)
 
 	// CanParse checks if the parser can handle the given data
 	CanParse(data []byte) bool
@@ -292,9 +292,9 @@ type ParseOptions struct {
 	ToolType string `json:"tool_type"` // sast, sca, secret, iac, web3
 
 	// Asset information
-	AssetType  eis.AssetType `json:"asset_type"`
-	AssetValue string        `json:"asset_value"`
-	AssetID    string        `json:"asset_id"`
+	AssetType  ctis.AssetType `json:"asset_type"`
+	AssetValue string         `json:"asset_value"`
+	AssetID    string         `json:"asset_id"`
 
 	// Git information (legacy - use BranchInfo for full context)
 	Branch    string `json:"branch"`
@@ -302,7 +302,7 @@ type ParseOptions struct {
 
 	// Branch information for branch-aware finding lifecycle
 	// Provides full CI/CD context for auto-resolve and expiry features
-	BranchInfo *eis.BranchInfo `json:"branch_info,omitempty"`
+	BranchInfo *ctis.BranchInfo `json:"branch_info,omitempty"`
 
 	// BasePath is the root directory of the scanned codebase.
 	// Used to resolve relative file paths when reading snippets from source files.
@@ -361,9 +361,9 @@ type CollectResult struct {
 	DurationMs  int64 `json:"duration_ms"`
 
 	// Results
-	Reports    []*eis.Report `json:"reports"`
-	TotalItems int           `json:"total_items"`
-	ErrorItems int           `json:"error_items"`
+	Reports    []*ctis.Report `json:"reports"`
+	TotalItems int            `json:"total_items"`
+	ErrorItems int            `json:"error_items"`
 
 	// Cursor for pagination
 	NextCursor string `json:"next_cursor,omitempty"`
@@ -441,10 +441,10 @@ type AgentStatus struct {
 // Pusher sends data to the OpenCTEM API.
 type Pusher interface {
 	// PushFindings sends findings to OpenCTEM
-	PushFindings(ctx context.Context, report *eis.Report) (*PushResult, error)
+	PushFindings(ctx context.Context, report *ctis.Report) (*PushResult, error)
 
 	// PushAssets sends assets to OpenCTEM
-	PushAssets(ctx context.Context, report *eis.Report) (*PushResult, error)
+	PushAssets(ctx context.Context, report *ctis.Report) (*PushResult, error)
 
 	// SendHeartbeat sends a heartbeat to OpenCTEM
 	SendHeartbeat(ctx context.Context, status *AgentStatus) error
@@ -503,7 +503,7 @@ type ProcessResult struct {
 	ScanResult *ScanResult `json:"scan_result"`
 
 	// Parsed report
-	Report *eis.Report `json:"report,omitempty"`
+	Report *ctis.Report `json:"report,omitempty"`
 
 	// Push result
 	PushResult *PushResult `json:"push_result,omitempty"`
@@ -627,7 +627,7 @@ type ProviderConfig struct {
 // Adapter Interface - Format translation
 // =============================================================================
 
-// Adapter translates between different data formats and EIS.
+// Adapter translates between different data formats and CTIS.
 type Adapter interface {
 	// Name returns the adapter name (e.g., "sarif", "cyclonedx")
 	Name() string
@@ -635,14 +635,14 @@ type Adapter interface {
 	// InputFormats returns supported input formats
 	InputFormats() []string
 
-	// OutputFormat returns the output format (usually "ris")
+	// OutputFormat returns the output format (usually "ctis")
 	OutputFormat() string
 
 	// CanConvert checks if the input can be converted
 	CanConvert(input []byte) bool
 
-	// Convert transforms input to EIS Report
-	Convert(ctx context.Context, input []byte, opts *AdapterOptions) (*eis.Report, error)
+	// Convert transforms input to CTIS Report
+	Convert(ctx context.Context, input []byte, opts *AdapterOptions) (*ctis.Report, error)
 }
 
 // AdapterOptions configures adapter behavior.
@@ -673,10 +673,10 @@ type Enricher interface {
 	Name() string
 
 	// Enrich adds threat intel to a single finding
-	Enrich(ctx context.Context, finding *eis.Finding) (*eis.Finding, error)
+	Enrich(ctx context.Context, finding *ctis.Finding) (*ctis.Finding, error)
 
 	// EnrichBatch adds threat intel to multiple findings
-	EnrichBatch(ctx context.Context, findings []eis.Finding) ([]eis.Finding, error)
+	EnrichBatch(ctx context.Context, findings []ctis.Finding) ([]ctis.Finding, error)
 }
 
 // EnricherConfig holds enricher configuration.

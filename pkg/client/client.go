@@ -17,7 +17,7 @@ import (
 	"github.com/openctemio/sdk/pkg/chunk"
 	"github.com/openctemio/sdk/pkg/compress"
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 	"github.com/openctemio/sdk/pkg/retry"
 )
 
@@ -256,7 +256,7 @@ type HeartbeatRequest struct {
 
 // PushFindings sends findings to OpenCTEM.
 // If the push fails and a retry queue is configured, the report is queued for later retry.
-func (c *Client) PushFindings(ctx context.Context, report *eis.Report) (*core.PushResult, error) {
+func (c *Client) PushFindings(ctx context.Context, report *ctis.Report) (*core.PushResult, error) {
 	result, err := c.pushFindingsInternal(ctx, report)
 
 	// If push failed and retry queue is enabled, queue for retry
@@ -274,14 +274,14 @@ func (c *Client) PushFindings(ctx context.Context, report *eis.Report) (*core.Pu
 }
 
 // pushFindingsInternal performs the actual push without retry queue logic.
-func (c *Client) pushFindingsInternal(ctx context.Context, report *eis.Report) (*core.PushResult, error) {
+func (c *Client) pushFindingsInternal(ctx context.Context, report *ctis.Report) (*core.PushResult, error) {
 	url := fmt.Sprintf("%s/api/v1/agent/ingest", c.baseURL)
 
 	if c.verbose {
 		fmt.Printf("[openctem] Pushing %d findings to %s\n", len(report.Findings), url)
 	}
 
-	// Send EIS Report directly (API expects eis.Report format)
+	// Send CTIS Report directly (API expects ctis.Report format)
 	body, err := json.Marshal(report)
 	if err != nil {
 		return nil, fmt.Errorf("marshal report: %w", err)
@@ -320,7 +320,7 @@ func (c *Client) pushFindingsInternal(ctx context.Context, report *eis.Report) (
 
 // PushAssets sends assets to OpenCTEM.
 // If the push fails and a retry queue is configured, the report is queued for later retry.
-func (c *Client) PushAssets(ctx context.Context, report *eis.Report) (*core.PushResult, error) {
+func (c *Client) PushAssets(ctx context.Context, report *ctis.Report) (*core.PushResult, error) {
 	result, err := c.pushAssetsInternal(ctx, report)
 
 	// If push failed and retry queue is enabled, queue for retry
@@ -338,14 +338,14 @@ func (c *Client) PushAssets(ctx context.Context, report *eis.Report) (*core.Push
 }
 
 // pushAssetsInternal performs the actual push without retry queue logic.
-func (c *Client) pushAssetsInternal(ctx context.Context, report *eis.Report) (*core.PushResult, error) {
+func (c *Client) pushAssetsInternal(ctx context.Context, report *ctis.Report) (*core.PushResult, error) {
 	url := fmt.Sprintf("%s/api/v1/agent/ingest", c.baseURL)
 
 	if c.verbose {
 		fmt.Printf("[openctem] Pushing %d assets to %s\n", len(report.Assets), url)
 	}
 
-	// Send EIS Report directly with findings cleared (API expects eis.Report format)
+	// Send CTIS Report directly with findings cleared (API expects ctis.Report format)
 	assetOnlyReport := *report
 	assetOnlyReport.Findings = nil
 
@@ -666,7 +666,6 @@ func (c *Client) SetVerbose(v bool) {
 	c.verbose = v
 }
 
-
 // ============================================================================
 // Retry Queue Methods
 // ============================================================================
@@ -679,7 +678,7 @@ func (c *Client) hasRetryQueue() bool {
 }
 
 // queueForRetry adds a report to the retry queue for later retry.
-func (c *Client) queueForRetry(ctx context.Context, report *eis.Report, itemType retry.ItemType, originalErr error) error {
+func (c *Client) queueForRetry(ctx context.Context, report *ctis.Report, itemType retry.ItemType, originalErr error) error {
 	c.retryMu.RLock()
 	queue := c.retryQueue
 	c.retryMu.RUnlock()
@@ -861,7 +860,7 @@ func (c *Client) ProcessRetryQueueNow(ctx context.Context) error {
 
 // PushReport implements retry.ReportPusher interface.
 // This is used by the retry worker to push items from the queue.
-func (c *Client) PushReport(ctx context.Context, report *eis.Report) error {
+func (c *Client) PushReport(ctx context.Context, report *ctis.Report) error {
 	// Use internal methods to avoid re-queueing on failure
 	if len(report.Findings) > 0 {
 		_, err := c.pushFindingsInternal(ctx, report)
@@ -1276,12 +1275,12 @@ func (c *Client) GetSuppressions(ctx context.Context) ([]SuppressionRule, error)
 
 // FilterSuppressedFindings removes findings that match suppression rules.
 // This is used by the security gate to exclude false positives.
-func (c *Client) FilterSuppressedFindings(findings []eis.Finding, rules []SuppressionRule) []eis.Finding {
+func (c *Client) FilterSuppressedFindings(findings []ctis.Finding, rules []SuppressionRule) []ctis.Finding {
 	if len(rules) == 0 {
 		return findings
 	}
 
-	var filtered []eis.Finding
+	var filtered []ctis.Finding
 	for _, f := range findings {
 		if !c.isFiningSuppressed(f, rules) {
 			filtered = append(filtered, f)
@@ -1292,7 +1291,7 @@ func (c *Client) FilterSuppressedFindings(findings []eis.Finding, rules []Suppre
 }
 
 // isFiningSuppressed checks if a finding matches any suppression rule.
-func (c *Client) isFiningSuppressed(f eis.Finding, rules []SuppressionRule) bool {
+func (c *Client) isFiningSuppressed(f ctis.Finding, rules []SuppressionRule) bool {
 	for _, rule := range rules {
 		if c.matchesSuppressionRule(f, rule) {
 			return true
@@ -1304,7 +1303,7 @@ func (c *Client) isFiningSuppressed(f eis.Finding, rules []SuppressionRule) bool
 // matchesSuppressionRule checks if a finding matches a specific suppression rule.
 // Note: ToolName is not checked here because Finding doesn't have Tool info;
 // it should be checked at the Report level before calling this function.
-func (c *Client) matchesSuppressionRule(f eis.Finding, rule SuppressionRule) bool {
+func (c *Client) matchesSuppressionRule(f ctis.Finding, rule SuppressionRule) bool {
 	// Check rule ID (supports wildcard suffix)
 	if rule.RuleID != "" {
 		if strings.HasSuffix(rule.RuleID, "*") {
@@ -1360,7 +1359,7 @@ func matchGlobPattern(pattern, path string) bool {
 // =============================================================================
 
 // EnrichFindings adds EPSS and KEV data to findings with CVE IDs.
-func (c *Client) EnrichFindings(ctx context.Context, findings []eis.Finding) ([]eis.Finding, error) {
+func (c *Client) EnrichFindings(ctx context.Context, findings []ctis.Finding) ([]ctis.Finding, error) {
 	// Collect CVE IDs
 	cveIDs := make([]string, 0)
 	for _, f := range findings {
@@ -1388,7 +1387,7 @@ func (c *Client) EnrichFindings(ctx context.Context, findings []eis.Finding) ([]
 	}
 
 	// Enrich findings
-	result := make([]eis.Finding, len(findings))
+	result := make([]ctis.Finding, len(findings))
 	for i, f := range findings {
 		result[i] = f
 		if f.Vulnerability != nil && f.Vulnerability.CVEID != "" {

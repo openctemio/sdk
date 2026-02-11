@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
-// Parser converts semgrep output to EIS format.
+// Parser converts semgrep output to CTIS format.
 type Parser struct{}
 
 // Name returns the parser name.
@@ -45,21 +45,21 @@ func (p *Parser) CanParse(data []byte) bool {
 	return report.Version != ""
 }
 
-// Parse converts semgrep JSON output to EIS report.
-func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// Parse converts semgrep JSON output to CTIS report.
+func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	// Parse semgrep report
 	semgrepReport, err := ParseJSONBytes(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse semgrep output: %w", err)
 	}
 
-	// Create EIS report
-	report := eis.NewReport()
+	// Create CTIS report
+	report := ctis.NewReport()
 	report.Metadata.SourceType = "scanner"
 	report.Metadata.Timestamp = time.Now()
 
 	// Set tool info
-	report.Tool = &eis.Tool{
+	report.Tool = &ctis.Tool{
 		Name:   "semgrep",
 		Vendor: "Semgrep Inc.",
 		Capabilities: []string{
@@ -79,7 +79,7 @@ func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions
 		report.Metadata.Branch = opts.BranchInfo
 	} else if opts != nil && (opts.Branch != "" || opts.CommitSHA != "") {
 		// Legacy: create BranchInfo from individual fields
-		report.Metadata.Branch = &eis.BranchInfo{
+		report.Metadata.Branch = &ctis.BranchInfo{
 			Name:      opts.Branch,
 			CommitSHA: opts.CommitSHA,
 		}
@@ -99,19 +99,19 @@ func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions
 	return report, nil
 }
 
-// convertResult converts a semgrep result to EIS finding.
-func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis.Finding {
+// convertResult converts a semgrep result to CTIS finding.
+func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) ctis.Finding {
 	// Build human-readable title from check ID
 	// e.g., "python.lang.security.audit.eval-injection" -> "Eval Injection"
 	humanTitle := SlugToNormalText(r.CheckID)
 
-	finding := eis.Finding{
+	finding := ctis.Finding{
 		ID:                 fmt.Sprintf("finding-%d", index+1),
-		Type:               eis.FindingTypeVulnerability,
+		Type:               ctis.FindingTypeVulnerability,
 		Title:              humanTitle,      // Short title for list display
 		Description:        "",              // Don't duplicate message - Semgrep only has one text field
 		Message:            r.Extra.Message, // Primary message from semgrep (vulnerability explanation)
-		Severity:           eis.Severity(r.GetSeverity()),
+		Severity:           ctis.Severity(r.GetSeverity()),
 		Confidence:         r.GetConfidence(),
 		Impact:             r.GetImpact(),
 		Likelihood:         r.GetLikelihood(),
@@ -149,7 +149,7 @@ func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis
 		snippet = snippetData.Snippet
 	}
 
-	finding.Location = &eis.FindingLocation{
+	finding.Location = &ctis.FindingLocation{
 		Path:             r.Path,
 		StartLine:        r.Start.Line,
 		EndLine:          r.End.Line,
@@ -175,7 +175,7 @@ func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis
 	owasps := r.GetOWASPs()
 	hasASVS := r.Extra.Metadata.Asvs.Section != "" || r.Extra.Metadata.Asvs.Control != ""
 	if len(cwes) > 0 || len(owasps) > 0 || hasASVS {
-		finding.Vulnerability = &eis.VulnerabilityDetails{
+		finding.Vulnerability = &ctis.VulnerabilityDetails{
 			CWEIDs:   cwes,
 			OWASPIDs: owasps,
 		}
@@ -184,7 +184,7 @@ func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis
 		}
 		// Add ASVS compliance info if available
 		if hasASVS {
-			finding.Vulnerability.ASVS = &eis.ASVSInfo{
+			finding.Vulnerability.ASVS = &ctis.ASVSInfo{
 				Section:    r.Extra.Metadata.Asvs.Section,
 				ControlID:  r.Extra.Metadata.Asvs.Control,
 				ControlURL: r.Extra.Metadata.Asvs.Version,
@@ -213,7 +213,7 @@ func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis
 	// - Recommendation: human-readable guidance text (from message, contains "Ensure that...")
 	// - FixCode: actual code to apply (from extra.fix)
 	// - FixRegex: regex-based fix pattern
-	finding.Remediation = &eis.Remediation{
+	finding.Remediation = &ctis.Remediation{
 		Recommendation: r.Extra.Message, // Message contains both description AND recommendation text
 		FixAvailable:   r.Extra.Fix != "" || r.Extra.FixRegex != nil,
 		AutoFixable:    r.Extra.Fix != "" || r.Extra.FixRegex != nil,
@@ -226,7 +226,7 @@ func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis
 
 	// Add regex-based fix if available
 	if r.Extra.FixRegex != nil {
-		finding.Remediation.FixRegex = &eis.FixRegex{
+		finding.Remediation.FixRegex = &ctis.FixRegex{
 			Regex:       r.Extra.FixRegex.Regex,
 			Replacement: r.Extra.FixRegex.Replacement,
 			Count:       r.Extra.FixRegex.Count,
@@ -248,13 +248,13 @@ func (p *Parser) convertResult(r Result, index int, opts *core.ParseOptions) eis
 	return finding
 }
 
-// convertDataFlow converts semgrep dataflow trace to EIS DataFlow.
-func (p *Parser) convertDataFlow(df *DataFlow) *eis.DataFlow {
-	result := &eis.DataFlow{}
+// convertDataFlow converts semgrep dataflow trace to CTIS DataFlow.
+func (p *Parser) convertDataFlow(df *DataFlow) *ctis.DataFlow {
+	result := &ctis.DataFlow{}
 
 	// Parse taint source
 	if source := ConvertCliLoc(df.TaintSource); source != nil {
-		result.Sources = append(result.Sources, eis.DataFlowLocation{
+		result.Sources = append(result.Sources, ctis.DataFlowLocation{
 			Path:    source.Location.Path,
 			Line:    source.Location.Start.Line,
 			Column:  source.Location.Start.Col,
@@ -266,7 +266,7 @@ func (p *Parser) convertDataFlow(df *DataFlow) *eis.DataFlow {
 
 	// Parse intermediate vars
 	for i, node := range df.IntermediateVars {
-		result.Intermediates = append(result.Intermediates, eis.DataFlowLocation{
+		result.Intermediates = append(result.Intermediates, ctis.DataFlowLocation{
 			Path:    node.Location.Path,
 			Line:    node.Location.Start.Line,
 			Column:  node.Location.Start.Col,
@@ -284,7 +284,7 @@ func (p *Parser) convertDataFlow(df *DataFlow) *eis.DataFlow {
 		}
 	}
 	for i, sink := range sinks {
-		result.Sinks = append(result.Sinks, eis.DataFlowLocation{
+		result.Sinks = append(result.Sinks, ctis.DataFlowLocation{
 			Path:    sink.Location.Path,
 			Line:    sink.Location.Start.Line,
 			Column:  sink.Location.Start.Col,
@@ -299,7 +299,7 @@ func (p *Parser) convertDataFlow(df *DataFlow) *eis.DataFlow {
 
 // createAssetFromOptions creates an asset from parse options or branch info.
 // Priority: opts.AssetValue > opts.BranchInfo.RepositoryURL
-func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
+func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *ctis.Asset {
 	if opts == nil {
 		return nil
 	}
@@ -313,15 +313,15 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 	if opts.AssetValue != "" {
 		assetType := opts.AssetType
 		if assetType == "" {
-			assetType = eis.AssetTypeRepository
+			assetType = ctis.AssetTypeRepository
 		}
-		return &eis.Asset{
+		return &ctis.Asset{
 			ID:          assetID,
 			Type:        assetType,
 			Value:       opts.AssetValue,
 			Name:        opts.AssetValue,
-			Criticality: eis.CriticalityHigh,
-			Properties: eis.Properties{
+			Criticality: ctis.CriticalityHigh,
+			Properties: ctis.Properties{
 				"source": "parse_options",
 			},
 		}
@@ -329,7 +329,7 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 
 	// Priority 2: BranchInfo.RepositoryURL
 	if opts.BranchInfo != nil && opts.BranchInfo.RepositoryURL != "" {
-		props := eis.Properties{
+		props := ctis.Properties{
 			"source":       "branch_info",
 			"auto_created": true,
 		}
@@ -341,12 +341,12 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 		}
 		props["is_default_branch"] = opts.BranchInfo.IsDefaultBranch
 
-		return &eis.Asset{
+		return &ctis.Asset{
 			ID:          assetID,
-			Type:        eis.AssetTypeRepository,
+			Type:        ctis.AssetTypeRepository,
 			Value:       opts.BranchInfo.RepositoryURL,
 			Name:        opts.BranchInfo.RepositoryURL,
-			Criticality: eis.CriticalityHigh,
+			Criticality: ctis.CriticalityHigh,
 			Properties:  props,
 		}
 	}
@@ -354,8 +354,8 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 	return nil
 }
 
-// ParseToEIS is a convenience function to parse semgrep JSON to EIS.
-func ParseToEIS(data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// ParseToCTIS is a convenience function to parse semgrep JSON to CTIS.
+func ParseToCTIS(data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	parser := &Parser{}
 	return parser.Parse(context.Background(), data, opts)
 }

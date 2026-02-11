@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/openctemio/sdk/pkg/compress"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // Uploader is the interface for uploading chunks.
@@ -90,13 +90,13 @@ func (m *Manager) SetVerbose(v bool) {
 }
 
 // NeedsChunking checks if a report needs to be chunked.
-func (m *Manager) NeedsChunking(report *eis.Report) bool {
+func (m *Manager) NeedsChunking(report *ctis.Report) bool {
 	return m.splitter.NeedsChunking(report)
 }
 
 // SubmitReport queues a report for chunked upload.
 // Returns immediately after storing chunks to SQLite.
-func (m *Manager) SubmitReport(ctx context.Context, report *eis.Report) (*Report, error) {
+func (m *Manager) SubmitReport(ctx context.Context, report *ctis.Report) (*Report, error) {
 	// Split report into chunks
 	chunkDataList, err := m.splitter.Split(report)
 	if err != nil {

@@ -1,4 +1,4 @@
-// Package sarif provides an adapter to convert SARIF format to EIS.
+// Package sarif provides an adapter to convert SARIF format to CTIS.
 package sarif
 
 import (
@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
-// Adapter converts SARIF (Static Analysis Results Interchange Format) to EIS.
+// Adapter converts SARIF (Static Analysis Results Interchange Format) to CTIS.
 type Adapter struct{}
 
 // NewAdapter creates a new SARIF adapter.
@@ -32,7 +32,7 @@ func (a *Adapter) InputFormats() []string {
 
 // OutputFormat returns the output format.
 func (a *Adapter) OutputFormat() string {
-	return "eis"
+	return "ctis"
 }
 
 // CanConvert checks if the input can be converted.
@@ -45,18 +45,18 @@ func (a *Adapter) CanConvert(input []byte) bool {
 	return sarif.Schema != "" || sarif.Version != ""
 }
 
-// Convert transforms SARIF input to EIS Report.
-func (a *Adapter) Convert(ctx context.Context, input []byte, opts *core.AdapterOptions) (*eis.Report, error) {
+// Convert transforms SARIF input to CTIS Report.
+func (a *Adapter) Convert(ctx context.Context, input []byte, opts *core.AdapterOptions) (*ctis.Report, error) {
 	var sarif SARIFReport
 	if err := json.Unmarshal(input, &sarif); err != nil {
 		return nil, fmt.Errorf("parse SARIF: %w", err)
 	}
 
-	report := eis.NewReport()
+	report := ctis.NewReport()
 	report.Metadata.SourceType = "scanner"
 
 	if opts != nil {
-		report.Metadata.Scope = &eis.Scope{
+		report.Metadata.Scope = &ctis.Scope{
 			Name: opts.Repository,
 		}
 	}
@@ -69,7 +69,7 @@ func (a *Adapter) Convert(ctx context.Context, input []byte, opts *core.AdapterO
 			if version == "" {
 				version = run.Tool.Driver.SemanticVersion
 			}
-			report.Tool = &eis.Tool{
+			report.Tool = &ctis.Tool{
 				Name:    run.Tool.Driver.Name,
 				Version: version,
 				Vendor:  run.Tool.Driver.Organization,
@@ -95,13 +95,13 @@ func (a *Adapter) Convert(ctx context.Context, input []byte, opts *core.AdapterO
 	return report, nil
 }
 
-// convertResult converts a SARIF result to a EIS finding.
-func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFRule, opts *core.AdapterOptions, runIdx, resultIdx int) *eis.Finding {
+// convertResult converts a SARIF result to a CTIS finding.
+func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFRule, opts *core.AdapterOptions, runIdx, resultIdx int) *ctis.Finding {
 	rule := ruleIndex[result.RuleID]
 
-	finding := &eis.Finding{
+	finding := &ctis.Finding{
 		ID:     fmt.Sprintf("run%d-finding%d", runIdx, resultIdx+1),
-		Type:   eis.FindingTypeVulnerability,
+		Type:   ctis.FindingTypeVulnerability,
 		RuleID: result.RuleID,
 	}
 
@@ -120,7 +120,7 @@ func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFR
 		// Extract CWE, OWASP, Confidence from tags
 		cwes, owasps, confidence := a.extractFromTags(rule.Properties.Tags)
 		if len(cwes) > 0 || len(owasps) > 0 {
-			finding.Vulnerability = &eis.VulnerabilityDetails{
+			finding.Vulnerability = &ctis.VulnerabilityDetails{
 				CWEIDs:   cwes,
 				OWASPIDs: owasps,
 			}
@@ -196,7 +196,7 @@ func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFR
 	// Set location from first location
 	if len(result.Locations) > 0 {
 		loc := result.Locations[0]
-		finding.Location = &eis.FindingLocation{
+		finding.Location = &ctis.FindingLocation{
 			Path:        loc.PhysicalLocation.ArtifactLocation.URI,
 			StartLine:   loc.PhysicalLocation.Region.StartLine,
 			EndLine:     loc.PhysicalLocation.Region.EndLine,
@@ -223,7 +223,7 @@ func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFR
 
 	// Convert related locations
 	for _, loc := range result.RelatedLocations {
-		finding.RelatedLocations = append(finding.RelatedLocations, &eis.FindingLocation{
+		finding.RelatedLocations = append(finding.RelatedLocations, &ctis.FindingLocation{
 			Path:        loc.PhysicalLocation.ArtifactLocation.URI,
 			StartLine:   loc.PhysicalLocation.Region.StartLine,
 			EndLine:     loc.PhysicalLocation.Region.EndLine,
@@ -235,12 +235,12 @@ func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFR
 
 	// Convert stacks
 	for _, stack := range result.Stacks {
-		st := &eis.StackTrace{
+		st := &ctis.StackTrace{
 			Message: stack.Message.Text,
 		}
 		for _, frame := range stack.Frames {
-			st.Frames = append(st.Frames, &eis.StackFrame{
-				Location: &eis.FindingLocation{
+			st.Frames = append(st.Frames, &ctis.StackFrame{
+				Location: &ctis.FindingLocation{
 					Path:        frame.Location.PhysicalLocation.ArtifactLocation.URI,
 					StartLine:   frame.Location.PhysicalLocation.Region.StartLine,
 					EndLine:     frame.Location.PhysicalLocation.Region.EndLine,
@@ -258,9 +258,9 @@ func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFR
 
 	// Convert attachments
 	for _, att := range result.Attachments {
-		finding.Attachments = append(finding.Attachments, &eis.Attachment{
+		finding.Attachments = append(finding.Attachments, &ctis.Attachment{
 			Description: att.Description.Text,
-			ArtifactLocation: &eis.ArtifactLocation{
+			ArtifactLocation: &ctis.ArtifactLocation{
 				URI: att.ArtifactLocation.URI,
 			},
 		})
@@ -268,7 +268,7 @@ func (a *Adapter) convertResult(result SARIFResult, ruleIndex map[string]*SARIFR
 
 	// Filter by severity if option is set
 	if opts != nil && opts.MinSeverity != "" {
-		if !meetsMinSeverity(finding.Severity, eis.Severity(opts.MinSeverity)) {
+		if !meetsMinSeverity(finding.Severity, ctis.Severity(opts.MinSeverity)) {
 			return nil
 		}
 	}
@@ -402,17 +402,17 @@ func extractURLsFromMarkdown(markdown string) []string {
 	return urls
 }
 
-// convertCodeFlow converts SARIF code flow to EIS data flow.
-func (a *Adapter) convertCodeFlow(cf SARIFCodeFlow) *eis.DataFlow {
+// convertCodeFlow converts SARIF code flow to CTIS data flow.
+func (a *Adapter) convertCodeFlow(cf SARIFCodeFlow) *ctis.DataFlow {
 	if len(cf.ThreadFlows) == 0 {
 		return nil
 	}
 
-	dataFlow := &eis.DataFlow{}
+	dataFlow := &ctis.DataFlow{}
 
 	for _, tf := range cf.ThreadFlows {
 		for i, loc := range tf.Locations {
-			dfLoc := eis.DataFlowLocation{
+			dfLoc := ctis.DataFlowLocation{
 				Path:    loc.Location.PhysicalLocation.ArtifactLocation.URI,
 				Line:    loc.Location.PhysicalLocation.Region.StartLine,
 				Column:  loc.Location.PhysicalLocation.Region.StartColumn,
@@ -434,30 +434,30 @@ func (a *Adapter) convertCodeFlow(cf SARIFCodeFlow) *eis.DataFlow {
 	return dataFlow
 }
 
-// mapSARIFSeverity maps SARIF level to EIS severity.
-func mapSARIFSeverity(level string) eis.Severity {
+// mapSARIFSeverity maps SARIF level to CTIS severity.
+func mapSARIFSeverity(level string) ctis.Severity {
 	switch strings.ToLower(level) {
 	case "error":
-		return eis.SeverityHigh
+		return ctis.SeverityHigh
 	case "warning":
-		return eis.SeverityMedium
+		return ctis.SeverityMedium
 	case "note":
-		return eis.SeverityLow
+		return ctis.SeverityLow
 	case "none":
-		return eis.SeverityInfo
+		return ctis.SeverityInfo
 	default:
-		return eis.SeverityMedium
+		return ctis.SeverityMedium
 	}
 }
 
 // meetsMinSeverity checks if severity meets minimum threshold.
-func meetsMinSeverity(s, min eis.Severity) bool {
-	order := map[eis.Severity]int{
-		eis.SeverityCritical: 5,
-		eis.SeverityHigh:     4,
-		eis.SeverityMedium:   3,
-		eis.SeverityLow:      2,
-		eis.SeverityInfo:     1,
+func meetsMinSeverity(s, min ctis.Severity) bool {
+	order := map[ctis.Severity]int{
+		ctis.SeverityCritical: 5,
+		ctis.SeverityHigh:     4,
+		ctis.SeverityMedium:   3,
+		ctis.SeverityLow:      2,
+		ctis.SeverityInfo:     1,
 	}
 	return order[s] >= order[min]
 }
@@ -478,9 +478,9 @@ type SARIFReport struct {
 
 // SARIFRun represents a single run of a tool.
 type SARIFRun struct {
-	Tool        SARIFTool       `json:"tool"`
+	Tool        SARIFTool         `json:"tool"`
 	Invocations []SARIFInvocation `json:"invocations,omitempty"`
-	Results     []SARIFResult   `json:"results"`
+	Results     []SARIFResult     `json:"results"`
 }
 
 // SARIFInvocation describes a tool invocation.
@@ -504,14 +504,14 @@ type SARIFDriver struct {
 
 // SARIFRule describes a detection rule.
 type SARIFRule struct {
-	ID                   string                  `json:"id"`
-	Name                 string                  `json:"name,omitempty"`
-	ShortDescription     SARIFMessage            `json:"shortDescription,omitempty"`
-	FullDescription      SARIFMessage            `json:"fullDescription,omitempty"`
-	Help                 SARIFHelp               `json:"help,omitempty"`
-	HelpURI              string                  `json:"helpUri,omitempty"`
-	DefaultConfiguration SARIFRuleConfiguration  `json:"defaultConfiguration,omitempty"`
-	Properties           SARIFRuleProps          `json:"properties,omitempty"`
+	ID                   string                 `json:"id"`
+	Name                 string                 `json:"name,omitempty"`
+	ShortDescription     SARIFMessage           `json:"shortDescription,omitempty"`
+	FullDescription      SARIFMessage           `json:"fullDescription,omitempty"`
+	Help                 SARIFHelp              `json:"help,omitempty"`
+	HelpURI              string                 `json:"helpUri,omitempty"`
+	DefaultConfiguration SARIFRuleConfiguration `json:"defaultConfiguration,omitempty"`
+	Properties           SARIFRuleProps         `json:"properties,omitempty"`
 }
 
 // SARIFRuleConfiguration describes default rule configuration.
@@ -538,13 +538,13 @@ type SARIFMessage struct {
 
 // SARIFResult is a single finding.
 type SARIFResult struct {
-	RuleID      string            `json:"ruleId"`
-	Level       string            `json:"level,omitempty"`
-	Message     SARIFMessage      `json:"message"`
-	Locations   []SARIFLocation   `json:"locations,omitempty"`
+	RuleID       string            `json:"ruleId"`
+	Level        string            `json:"level,omitempty"`
+	Message      SARIFMessage      `json:"message"`
+	Locations    []SARIFLocation   `json:"locations,omitempty"`
 	Fingerprints map[string]string `json:"fingerprints,omitempty"`
-	CodeFlows   []SARIFCodeFlow   `json:"codeFlows,omitempty"`
-	Properties  map[string]any    `json:"properties,omitempty"`
+	CodeFlows    []SARIFCodeFlow   `json:"codeFlows,omitempty"`
+	Properties   map[string]any    `json:"properties,omitempty"`
 
 	// SARIF 2.1.0 extended fields
 	Kind                string            `json:"kind,omitempty"`
@@ -632,9 +632,9 @@ type SARIFAttachment struct {
 // Convenience Functions
 // =============================================================================
 
-// ParseToEIS is a convenience function to parse SARIF JSON to EIS format.
-// This provides a consistent API with other scanner parsers (e.g., semgrep.ParseToEIS).
-func ParseToEIS(data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// ParseToCTIS is a convenience function to parse SARIF JSON to CTIS format.
+// This provides a consistent API with other scanner parsers (e.g., semgrep.ParseToCTIS).
+func ParseToCTIS(data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	adapter := NewAdapter()
 
 	// Convert ParseOptions to AdapterOptions

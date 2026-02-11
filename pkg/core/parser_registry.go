@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // =============================================================================
@@ -102,16 +102,16 @@ func (p *SARIFParser) CanParse(data []byte) bool {
 		strings.Contains(s, `"version"`) && strings.Contains(s, `"runs"`)
 }
 
-// Parse converts SARIF to EIS format.
-func (p *SARIFParser) Parse(ctx context.Context, data []byte, opts *ParseOptions) (*eis.Report, error) {
+// Parse converts SARIF to CTIS format.
+func (p *SARIFParser) Parse(ctx context.Context, data []byte, opts *ParseOptions) (*ctis.Report, error) {
 	if opts == nil {
 		opts = &ParseOptions{
 			DefaultConfidence: 90,
 		}
 	}
 
-	// Use the EIS package's SARIF converter
-	convertOpts := &eis.ConvertOptions{
+	// Use the CTIS package's SARIF converter
+	convertOpts := &ctis.ConvertOptions{
 		AssetType:         opts.AssetType,
 		AssetValue:        opts.AssetValue,
 		AssetID:           opts.AssetID,
@@ -122,14 +122,14 @@ func (p *SARIFParser) Parse(ctx context.Context, data []byte, opts *ParseOptions
 		ToolType:          opts.ToolType,
 	}
 
-	return eis.FromSARIF(data, convertOpts)
+	return ctis.FromSARIF(data, convertOpts)
 }
 
 // =============================================================================
 // JSON Parser - Generic JSON parser
 // =============================================================================
 
-// JSONParser parses generic JSON output that follows EIS schema.
+// JSONParser parses generic JSON output that follows CTIS schema.
 type JSONParser struct{}
 
 // Name returns the parser name.
@@ -139,7 +139,7 @@ func (p *JSONParser) Name() string {
 
 // SupportedFormats returns supported formats.
 func (p *JSONParser) SupportedFormats() []string {
-	return []string{"json", "ris"}
+	return []string{"json", "ctis"}
 }
 
 // CanParse checks if this parser can handle the data.
@@ -148,13 +148,13 @@ func (p *JSONParser) CanParse(data []byte) bool {
 		return false
 	}
 
-	// Check if it's valid JSON and has EIS markers
+	// Check if it's valid JSON and has CTIS markers
 	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return false
 	}
 
-	// Check for EIS format markers
+	// Check for CTIS format markers
 	_, hasVersion := raw["version"]
 	_, hasFindings := raw["findings"]
 	_, hasMetadata := raw["metadata"]
@@ -162,9 +162,9 @@ func (p *JSONParser) CanParse(data []byte) bool {
 	return hasVersion && (hasFindings || hasMetadata)
 }
 
-// Parse converts JSON to EIS format.
-func (p *JSONParser) Parse(ctx context.Context, data []byte, opts *ParseOptions) (*eis.Report, error) {
-	var report eis.Report
+// Parse converts JSON to CTIS format.
+func (p *JSONParser) Parse(ctx context.Context, data []byte, opts *ParseOptions) (*ctis.Report, error) {
+	var report ctis.Report
 	if err := json.Unmarshal(data, &report); err != nil {
 		return nil, fmt.Errorf("parse json: %w", err)
 	}
@@ -176,7 +176,7 @@ func (p *JSONParser) Parse(ctx context.Context, data []byte, opts *ParseOptions)
 			if assetID == "" {
 				assetID = "asset-1"
 			}
-			report.Assets = append(report.Assets, eis.Asset{
+			report.Assets = append(report.Assets, ctis.Asset{
 				ID:    assetID,
 				Type:  opts.AssetType,
 				Value: opts.AssetValue,
@@ -231,24 +231,24 @@ func (p *BaseParser) CanParse(data []byte) bool {
 }
 
 // Parse default implementation - override in your parser.
-func (p *BaseParser) Parse(ctx context.Context, data []byte, opts *ParseOptions) (*eis.Report, error) {
+func (p *BaseParser) Parse(ctx context.Context, data []byte, opts *ParseOptions) (*ctis.Report, error) {
 	return nil, fmt.Errorf("Parse not implemented - override this method in your parser")
 }
 
 // CreateFinding is a helper to create a finding with common fields set.
-func (p *BaseParser) CreateFinding(id, title string, severity eis.Severity) eis.Finding {
-	return eis.Finding{
+func (p *BaseParser) CreateFinding(id, title string, severity ctis.Severity) ctis.Finding {
+	return ctis.Finding{
 		ID:       id,
-		Type:     eis.FindingTypeVulnerability,
+		Type:     ctis.FindingTypeVulnerability,
 		Title:    title,
 		Severity: severity,
 	}
 }
 
 // CreateReport is a helper to create a new report.
-func (p *BaseParser) CreateReport(toolName, toolVersion string) *eis.Report {
-	report := eis.NewReport()
-	report.Tool = &eis.Tool{
+func (p *BaseParser) CreateReport(toolName, toolVersion string) *ctis.Report {
+	report := ctis.NewReport()
+	report.Tool = &ctis.Tool{
 		Name:    toolName,
 		Version: toolVersion,
 	}

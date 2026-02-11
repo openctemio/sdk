@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
-// Parser converts Nuclei output to EIS format.
+// Parser converts Nuclei output to CTIS format.
 type Parser struct {
 	Verbose bool
 }
@@ -24,29 +24,29 @@ func NewParser() *Parser {
 	return &Parser{}
 }
 
-// Parse converts Nuclei JSON Lines output to EIS Report.
-func (p *Parser) Parse(data []byte, target string) (*eis.Report, error) {
+// Parse converts Nuclei JSON Lines output to CTIS Report.
+func (p *Parser) Parse(data []byte, target string) (*ctis.Report, error) {
 	return p.ParseWithOptions(data, target, nil)
 }
 
-// ParseWithOptions converts Nuclei JSON Lines output to EIS Report with options.
-func (p *Parser) ParseWithOptions(data []byte, target string, opts *core.ParseOptions) (*eis.Report, error) {
+// ParseWithOptions converts Nuclei JSON Lines output to CTIS Report with options.
+func (p *Parser) ParseWithOptions(data []byte, target string, opts *core.ParseOptions) (*ctis.Report, error) {
 	results, err := p.parseJSONLines(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.toRISReportWithOptions(results, target, opts), nil
+	return p.toCTISReportWithOptions(results, target, opts), nil
 }
 
-// ParseResults converts parsed Nuclei results to EIS Report.
-func (p *Parser) ParseResults(results []Result, target string) *eis.Report {
-	return p.toRISReportWithOptions(results, target, nil)
+// ParseResults converts parsed Nuclei results to CTIS Report.
+func (p *Parser) ParseResults(results []Result, target string) *ctis.Report {
+	return p.toCTISReportWithOptions(results, target, nil)
 }
 
-// ParseResultsWithOptions converts parsed Nuclei results to EIS Report with options.
-func (p *Parser) ParseResultsWithOptions(results []Result, target string, opts *core.ParseOptions) *eis.Report {
-	return p.toRISReportWithOptions(results, target, opts)
+// ParseResultsWithOptions converts parsed Nuclei results to CTIS Report with options.
+func (p *Parser) ParseResultsWithOptions(results []Result, target string, opts *core.ParseOptions) *ctis.Report {
+	return p.toCTISReportWithOptions(results, target, opts)
 }
 
 // parseJSONLines parses Nuclei's JSON Lines output format.
@@ -83,9 +83,9 @@ func (p *Parser) parseJSONLines(data []byte) ([]Result, error) {
 	return results, nil
 }
 
-// toRISReportWithOptions converts Nuclei results to EIS Report format with options.
-func (p *Parser) toRISReportWithOptions(results []Result, _ string, opts *core.ParseOptions) *eis.Report {
-	report := eis.NewReport()
+// toCTISReportWithOptions converts Nuclei results to CTIS Report format with options.
+func (p *Parser) toCTISReportWithOptions(results []Result, _ string, opts *core.ParseOptions) *ctis.Report {
+	report := ctis.NewReport()
 	report.Metadata.SourceType = "scanner"
 	report.Metadata.Timestamp = time.Now()
 
@@ -94,13 +94,13 @@ func (p *Parser) toRISReportWithOptions(results []Result, _ string, opts *core.P
 		report.Metadata.Branch = opts.BranchInfo
 	} else if opts != nil && (opts.Branch != "" || opts.CommitSHA != "") {
 		// Legacy: create BranchInfo from individual fields
-		report.Metadata.Branch = &eis.BranchInfo{
+		report.Metadata.Branch = &ctis.BranchInfo{
 			Name:      opts.Branch,
 			CommitSHA: opts.CommitSHA,
 		}
 	}
 
-	report.Tool = &eis.Tool{
+	report.Tool = &ctis.Tool{
 		Name:         "nuclei",
 		Vendor:       "ProjectDiscovery",
 		InfoURL:      "https://github.com/projectdiscovery/nuclei",
@@ -115,7 +115,7 @@ func (p *Parser) toRISReportWithOptions(results []Result, _ string, opts *core.P
 		assetID := p.getOrCreateAsset(report, result, assetMap)
 
 		// Create finding
-		finding := p.toRISFinding(result, assetID, i)
+		finding := p.toCTISFinding(result, assetID, i)
 		report.Findings = append(report.Findings, finding)
 	}
 
@@ -123,7 +123,7 @@ func (p *Parser) toRISReportWithOptions(results []Result, _ string, opts *core.P
 }
 
 // getOrCreateAsset creates or retrieves an asset for the result.
-func (p *Parser) getOrCreateAsset(report *eis.Report, result Result, assetMap map[string]string) string {
+func (p *Parser) getOrCreateAsset(report *ctis.Report, result Result, assetMap map[string]string) string {
 	// Determine asset key (host or URL)
 	key := result.Host
 	if result.URL != "" {
@@ -139,25 +139,25 @@ func (p *Parser) getOrCreateAsset(report *eis.Report, result Result, assetMap ma
 	assetID := fmt.Sprintf("asset-%d", len(report.Assets))
 	assetMap[key] = assetID
 
-	assetType := eis.AssetTypeDomain
+	assetType := ctis.AssetTypeDomain
 	assetValue := result.Host
 
 	// Determine asset type based on result
 	if result.IP != "" {
-		assetType = eis.AssetTypeIPAddress
+		assetType = ctis.AssetTypeIPAddress
 		assetValue = result.IP
 	} else if result.URL != "" {
-		assetType = eis.AssetTypeService
+		assetType = ctis.AssetTypeService
 		assetValue = result.URL
 	}
 
-	asset := eis.Asset{
+	asset := ctis.Asset{
 		ID:         assetID,
 		Type:       assetType,
 		Value:      assetValue,
 		Name:       key,
 		Confidence: 90,
-		Properties: make(eis.Properties),
+		Properties: make(ctis.Properties),
 	}
 
 	// Add technical details
@@ -172,18 +172,18 @@ func (p *Parser) getOrCreateAsset(report *eis.Report, result Result, assetMap ma
 	return assetID
 }
 
-// toRISFinding converts a Nuclei result to EIS Finding.
-func (p *Parser) toRISFinding(result Result, assetRef string, index int) eis.Finding {
+// toCTISFinding converts a Nuclei result to CTIS Finding.
+func (p *Parser) toCTISFinding(result Result, assetRef string, index int) ctis.Finding {
 	findingID := fmt.Sprintf("finding-%d", index)
 
 	// Determine finding type
-	findingType := eis.FindingTypeVulnerability
+	findingType := ctis.FindingTypeVulnerability
 	if containsAny(result.Info.Tags, "misconfig", "config", "exposure") {
-		findingType = eis.FindingTypeMisconfiguration
+		findingType = ctis.FindingTypeMisconfiguration
 	}
 
 	// Map severity
-	severity := eis.Severity(GetRISSeverity(result.Info.Severity))
+	severity := ctis.Severity(GetCTISSeverity(result.Info.Severity))
 
 	// Build title
 	title := result.Info.Name
@@ -191,7 +191,7 @@ func (p *Parser) toRISFinding(result Result, assetRef string, index int) eis.Fin
 		title = result.TemplateID
 	}
 
-	finding := eis.Finding{
+	finding := ctis.Finding{
 		ID:          findingID,
 		Type:        findingType,
 		Title:       title,
@@ -206,7 +206,7 @@ func (p *Parser) toRISFinding(result Result, assetRef string, index int) eis.Fin
 		Tags:        result.Info.Tags,
 		References:  result.Info.Reference,
 		Fingerprint: p.generateFingerprint(result),
-		Properties:  make(eis.Properties),
+		Properties:  make(ctis.Properties),
 	}
 
 	// Set location based on matched URL
@@ -215,14 +215,14 @@ func (p *Parser) toRISFinding(result Result, assetRef string, index int) eis.Fin
 		if location == "" {
 			location = result.URL
 		}
-		finding.Location = &eis.FindingLocation{
+		finding.Location = &ctis.FindingLocation{
 			Path: location,
 		}
 	}
 
 	// Add vulnerability details if classification exists
 	if result.Info.Classification != nil {
-		finding.Vulnerability = &eis.VulnerabilityDetails{}
+		finding.Vulnerability = &ctis.VulnerabilityDetails{}
 
 		if len(result.Info.Classification.CVEId) > 0 {
 			finding.Vulnerability.CVEID = result.Info.Classification.CVEId[0]
@@ -246,7 +246,7 @@ func (p *Parser) toRISFinding(result Result, assetRef string, index int) eis.Fin
 
 	// Add remediation if available
 	if result.Info.Remediation != "" {
-		finding.Remediation = &eis.Remediation{
+		finding.Remediation = &ctis.Remediation{
 			Recommendation: result.Info.Remediation,
 		}
 	}
@@ -345,10 +345,10 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen] + "...[truncated]"
 }
 
-// ParseToEIS is a convenience function to parse Nuclei JSON Lines to EIS format.
-// This provides a consistent API with other scanner parsers (e.g., semgrep.ParseToEIS).
+// ParseToCTIS is a convenience function to parse Nuclei JSON Lines to CTIS format.
+// This provides a consistent API with other scanner parsers (e.g., semgrep.ParseToCTIS).
 // Note: target can be extracted from opts.AssetValue or left empty if not needed.
-func ParseToEIS(data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+func ParseToCTIS(data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	parser := NewParser()
 	target := ""
 	if opts != nil && opts.AssetValue != "" {

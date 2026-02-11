@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/openctemio/sdk/pkg/core"
+	"github.com/openctemio/sdk/pkg/ctis"
 	"github.com/openctemio/sdk/pkg/gitenv"
-	"github.com/openctemio/sdk/pkg/eis"
 	"github.com/openctemio/sdk/pkg/strategy"
 )
 
@@ -196,8 +196,8 @@ func (h *RemoteHandler) OnError(err error) error {
 	return nil
 }
 
-// formatCommentTitle formats the comment title from a eis.Finding.
-func formatCommentTitle(finding *eis.Finding) string {
+// formatCommentTitle formats the comment title from a ctis.Finding.
+func formatCommentTitle(finding *ctis.Finding) string {
 	if finding.Title != "" {
 		return finding.Title
 	}
@@ -207,8 +207,8 @@ func formatCommentTitle(finding *eis.Finding) string {
 	return "Security Finding"
 }
 
-// formatCommentBody formats the comment body as markdown from a eis.Finding.
-func formatCommentBody(finding *eis.Finding) string {
+// formatCommentBody formats the comment body as markdown from a ctis.Finding.
+func formatCommentBody(finding *ctis.Finding) string {
 	var parts []string
 
 	// Severity badge
@@ -253,15 +253,15 @@ func formatCommentBody(finding *eis.Finding) string {
 }
 
 // getSeverityEmoji returns an emoji for the severity level.
-func getSeverityEmoji(severity eis.Severity) string {
+func getSeverityEmoji(severity ctis.Severity) string {
 	switch severity {
-	case eis.SeverityCritical:
+	case ctis.SeverityCritical:
 		return "\U0001F534" // Red circle
-	case eis.SeverityHigh:
+	case ctis.SeverityHigh:
 		return "\U0001F7E0" // Orange circle
-	case eis.SeverityMedium:
+	case ctis.SeverityMedium:
 		return "\U0001F7E1" // Yellow circle
-	case eis.SeverityLow:
+	case ctis.SeverityLow:
 		return "\U0001F7E2" // Green circle
 	default:
 		return "\U0001F535" // Blue circle

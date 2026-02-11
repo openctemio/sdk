@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // ReportPusher is the interface for pushing reports to the server.
 // This is typically implemented by the Client.
 type ReportPusher interface {
-	// PushReport pushes a EIS report to the server.
-	PushReport(ctx context.Context, report *eis.Report) error
+	// PushReport pushes a CTIS report to the server.
+	PushReport(ctx context.Context, report *ctis.Report) error
 }
 
 // FingerprintChecker is the interface for checking if fingerprints already exist on the server.

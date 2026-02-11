@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
-// Parser converts subfinder output to EIS format.
+// Parser converts subfinder output to CTIS format.
 type Parser struct{}
 
 // NewParser creates a new subfinder parser.
@@ -56,20 +56,20 @@ func (p *Parser) CanParse(data []byte) bool {
 	return false
 }
 
-// Parse converts subfinder output to EIS report.
-func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// Parse converts subfinder output to CTIS report.
+func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	subdomains, err := p.parseSubdomains(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse subfinder output: %w", err)
 	}
 
 	// Create assets from subdomains
-	var assets []eis.Asset
+	var assets []ctis.Asset
 	for _, sub := range subdomains {
-		asset := eis.Asset{
-			Type:  eis.AssetTypeDomain,
+		asset := ctis.Asset{
+			Type:  ctis.AssetTypeDomain,
 			Value: sub.Host,
-			Properties: eis.Properties{
+			Properties: ctis.Properties{
 				"root_domain": sub.Domain,
 				"source":      sub.Source,
 			},
@@ -77,19 +77,19 @@ func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions
 		assets = append(assets, asset)
 	}
 
-	report := &eis.Report{
+	report := &ctis.Report{
 		Version: "1.0",
-		Metadata: eis.ReportMetadata{
+		Metadata: ctis.ReportMetadata{
 			Timestamp:  time.Now(),
 			SourceType: "scanner",
-			Properties: eis.Properties{
+			Properties: ctis.Properties{
 				"scanner":       "subfinder",
 				"scanner_type":  "recon",
 				"source_format": "subfinder-json",
 				"assets_count":  len(assets),
 			},
 		},
-		Tool: &eis.Tool{
+		Tool: &ctis.Tool{
 			Name:   "subfinder",
 			Vendor: "projectdiscovery",
 		},
@@ -99,7 +99,7 @@ func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions
 	// Add scope info if provided
 	if opts != nil {
 		if opts.AssetValue != "" {
-			report.Metadata.Scope = &eis.Scope{
+			report.Metadata.Scope = &ctis.Scope{
 				Type: string(opts.AssetType),
 				Name: opts.AssetValue,
 			}

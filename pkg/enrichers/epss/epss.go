@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 const (
@@ -93,9 +93,9 @@ func (e *Enricher) Name() string {
 }
 
 // Enrich adds EPSS data to a single finding.
-func (e *Enricher) Enrich(ctx context.Context, finding *eis.Finding) (*eis.Finding, error) {
+func (e *Enricher) Enrich(ctx context.Context, finding *ctis.Finding) (*ctis.Finding, error) {
 	// Only enrich vulnerabilities with CVE IDs
-	if finding.Type != eis.FindingTypeVulnerability {
+	if finding.Type != ctis.FindingTypeVulnerability {
 		return finding, nil
 	}
 	if finding.Vulnerability == nil || finding.Vulnerability.CVEID == "" {
@@ -131,11 +131,11 @@ func (e *Enricher) Enrich(ctx context.Context, finding *eis.Finding) (*eis.Findi
 }
 
 // EnrichBatch adds EPSS data to multiple findings.
-func (e *Enricher) EnrichBatch(ctx context.Context, findings []eis.Finding) ([]eis.Finding, error) {
+func (e *Enricher) EnrichBatch(ctx context.Context, findings []ctis.Finding) ([]ctis.Finding, error) {
 	// Collect unique CVE IDs
 	cveIDs := make(map[string]bool)
 	for _, f := range findings {
-		if f.Type == eis.FindingTypeVulnerability && f.Vulnerability != nil && f.Vulnerability.CVEID != "" {
+		if f.Type == ctis.FindingTypeVulnerability && f.Vulnerability != nil && f.Vulnerability.CVEID != "" {
 			cveIDs[f.Vulnerability.CVEID] = true
 		}
 	}
@@ -158,7 +158,7 @@ func (e *Enricher) EnrichBatch(ctx context.Context, findings []eis.Finding) ([]e
 	}
 
 	// Enrich each finding
-	enriched := make([]eis.Finding, len(findings))
+	enriched := make([]ctis.Finding, len(findings))
 	for i, f := range findings {
 		result, _ := e.Enrich(ctx, &f)
 		enriched[i] = *result

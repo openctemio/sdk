@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // =============================================================================
-// Parser - Convert CodeQL SARIF to EIS Findings with full DataFlow support
+// Parser - Convert CodeQL SARIF to CTIS Findings with full DataFlow support
 // =============================================================================
 
-// Parser converts CodeQL SARIF output to EIS format.
+// Parser converts CodeQL SARIF output to CTIS format.
 type Parser struct {
 	// Rules from the SARIF run (for metadata lookup)
 	rules map[string]*Rule
@@ -31,14 +31,14 @@ func NewParser() *Parser {
 	}
 }
 
-// Parse parses CodeQL SARIF JSON output to EIS findings.
-func (p *Parser) Parse(data []byte) ([]*eis.Finding, error) {
+// Parse parses CodeQL SARIF JSON output to CTIS findings.
+func (p *Parser) Parse(data []byte) ([]*ctis.Finding, error) {
 	var report SARIFReport
 	if err := json.Unmarshal(data, &report); err != nil {
 		return nil, fmt.Errorf("failed to parse CodeQL SARIF: %w", err)
 	}
 
-	var findings []*eis.Finding
+	var findings []*ctis.Finding
 
 	for _, run := range report.Runs {
 		// Index rules for lookup
@@ -56,33 +56,33 @@ func (p *Parser) Parse(data []byte) ([]*eis.Finding, error) {
 	return findings, nil
 }
 
-// ParseToReport parses CodeQL SARIF to a complete EIS report.
-func (p *Parser) ParseToReport(data []byte) (*eis.Report, error) {
+// ParseToReport parses CodeQL SARIF to a complete CTIS report.
+func (p *Parser) ParseToReport(data []byte) (*ctis.Report, error) {
 	return p.ParseToReportWithOptions(data, nil)
 }
 
-// ParseToReportWithOptions parses CodeQL SARIF to a complete EIS report with options.
-func (p *Parser) ParseToReportWithOptions(data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// ParseToReportWithOptions parses CodeQL SARIF to a complete CTIS report with options.
+func (p *Parser) ParseToReportWithOptions(data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	findingPtrs, err := p.Parse(data)
 	if err != nil {
 		return nil, err
 	}
 
 	// Convert []*Finding to []Finding
-	findings := make([]eis.Finding, 0, len(findingPtrs))
+	findings := make([]ctis.Finding, 0, len(findingPtrs))
 	for _, f := range findingPtrs {
 		if f != nil {
 			findings = append(findings, *f)
 		}
 	}
 
-	report := &eis.Report{
+	report := &ctis.Report{
 		Version: "1.0",
-		Metadata: eis.ReportMetadata{
+		Metadata: ctis.ReportMetadata{
 			SourceType: "scanner",
 			Timestamp:  time.Now(),
 		},
-		Tool: &eis.Tool{
+		Tool: &ctis.Tool{
 			Name:    "codeql",
 			Version: p.getToolVersion(data),
 		},
@@ -94,7 +94,7 @@ func (p *Parser) ParseToReportWithOptions(data []byte, opts *core.ParseOptions) 
 		report.Metadata.Branch = opts.BranchInfo
 	} else if opts != nil && (opts.Branch != "" || opts.CommitSHA != "") {
 		// Legacy: create BranchInfo from individual fields
-		report.Metadata.Branch = &eis.BranchInfo{
+		report.Metadata.Branch = &ctis.BranchInfo{
 			Name:      opts.Branch,
 			CommitSHA: opts.CommitSHA,
 		}
@@ -113,7 +113,7 @@ func (p *Parser) ParseToReportWithOptions(data []byte, opts *core.ParseOptions) 
 }
 
 // createAssetFromOptions creates an asset from parse options or branch info.
-func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
+func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *ctis.Asset {
 	if opts == nil {
 		return nil
 	}
@@ -127,15 +127,15 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 	if opts.AssetValue != "" {
 		assetType := opts.AssetType
 		if assetType == "" {
-			assetType = eis.AssetTypeRepository
+			assetType = ctis.AssetTypeRepository
 		}
-		return &eis.Asset{
+		return &ctis.Asset{
 			ID:          assetID,
 			Type:        assetType,
 			Value:       opts.AssetValue,
 			Name:        opts.AssetValue,
-			Criticality: eis.CriticalityHigh,
-			Properties: eis.Properties{
+			Criticality: ctis.CriticalityHigh,
+			Properties: ctis.Properties{
 				"source": "parse_options",
 			},
 		}
@@ -143,7 +143,7 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 
 	// Priority 2: BranchInfo.RepositoryURL
 	if opts.BranchInfo != nil && opts.BranchInfo.RepositoryURL != "" {
-		props := eis.Properties{
+		props := ctis.Properties{
 			"source":       "branch_info",
 			"auto_created": true,
 		}
@@ -155,12 +155,12 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 		}
 		props["is_default_branch"] = opts.BranchInfo.IsDefaultBranch
 
-		return &eis.Asset{
+		return &ctis.Asset{
 			ID:          assetID,
-			Type:        eis.AssetTypeRepository,
+			Type:        ctis.AssetTypeRepository,
 			Value:       opts.BranchInfo.RepositoryURL,
 			Name:        opts.BranchInfo.RepositoryURL,
-			Criticality: eis.CriticalityHigh,
+			Criticality: ctis.CriticalityHigh,
 			Properties:  props,
 		}
 	}
@@ -185,14 +185,14 @@ func (p *Parser) indexRules(run *Run) {
 	}
 }
 
-// convertResult converts a SARIF result to an EIS finding.
-func (p *Parser) convertResult(result *Result) *eis.Finding {
+// convertResult converts a SARIF result to a CTIS finding.
+func (p *Parser) convertResult(result *Result) *ctis.Finding {
 	// Get rule metadata
 	rule := p.rules[result.RuleID]
 
 	title := p.buildTitle(result, rule)
-	finding := &eis.Finding{
-		Type:        eis.FindingTypeVulnerability,
+	finding := &ctis.Finding{
+		Type:        ctis.FindingTypeVulnerability,
 		RuleID:      result.RuleID,
 		Title:       title,
 		Description: result.Message.Text,
@@ -203,7 +203,7 @@ func (p *Parser) convertResult(result *Result) *eis.Finding {
 
 	// Set CWE IDs
 	if rule != nil && len(rule.Properties.CWEIDs) > 0 {
-		finding.Vulnerability = &eis.VulnerabilityDetails{
+		finding.Vulnerability = &ctis.VulnerabilityDetails{
 			CWEIDs: p.normalizeCWEs(rule.Properties.CWEIDs),
 		}
 	}
@@ -255,9 +255,9 @@ func (p *Parser) convertResult(result *Result) *eis.Finding {
 	return finding
 }
 
-// convertCodeFlows converts SARIF codeFlows to EIS DataFlow.
+// convertCodeFlows converts SARIF codeFlows to CTIS DataFlow.
 // This is the main function for extracting dataflow/taint tracking information.
-func (p *Parser) convertCodeFlows(codeFlows []CodeFlow) *eis.DataFlow {
+func (p *Parser) convertCodeFlows(codeFlows []CodeFlow) *ctis.DataFlow {
 	if len(codeFlows) == 0 {
 		return nil
 	}
@@ -265,7 +265,7 @@ func (p *Parser) convertCodeFlows(codeFlows []CodeFlow) *eis.DataFlow {
 	// Use the first code flow (most common case)
 	cf := codeFlows[0]
 
-	df := &eis.DataFlow{
+	df := &ctis.DataFlow{
 		Tainted: true,
 	}
 
@@ -304,18 +304,18 @@ func (p *Parser) convertCodeFlows(codeFlows []CodeFlow) *eis.DataFlow {
 			// Categorize by position and kinds
 			switch {
 			case i == 0 || p.isSource(&tfl):
-				loc.Type = eis.DataFlowLocationSource
+				loc.Type = ctis.DataFlowLocationSource
 				loc.TaintState = "tainted"
 				df.Sources = append(df.Sources, *loc)
 			case i == numLocs-1 || p.isSink(&tfl):
-				loc.Type = eis.DataFlowLocationSink
+				loc.Type = ctis.DataFlowLocationSink
 				df.Sinks = append(df.Sinks, *loc)
 			case p.isSanitizer(&tfl):
-				loc.Type = eis.DataFlowLocationSanitizer
+				loc.Type = ctis.DataFlowLocationSanitizer
 				loc.TaintState = "sanitized"
 				df.Sanitizers = append(df.Sanitizers, *loc)
 			default:
-				loc.Type = eis.DataFlowLocationPropagator
+				loc.Type = ctis.DataFlowLocationPropagator
 				df.Intermediates = append(df.Intermediates, *loc)
 			}
 
@@ -338,13 +338,13 @@ func (p *Parser) convertCodeFlows(codeFlows []CodeFlow) *eis.DataFlow {
 	return df
 }
 
-// convertThreadFlowLocation converts a SARIF threadFlowLocation to EIS DataFlowLocation.
-func (p *Parser) convertThreadFlowLocation(tfl *ThreadFlowLocation, index, total int) *eis.DataFlowLocation {
+// convertThreadFlowLocation converts a SARIF threadFlowLocation to CTIS DataFlowLocation.
+func (p *Parser) convertThreadFlowLocation(tfl *ThreadFlowLocation, index, total int) *ctis.DataFlowLocation {
 	if tfl.Location == nil || tfl.Location.PhysicalLocation == nil {
 		return nil
 	}
 
-	loc := &eis.DataFlowLocation{
+	loc := &ctis.DataFlowLocation{
 		Index: index,
 	}
 
@@ -399,7 +399,7 @@ func (p *Parser) convertThreadFlowLocation(tfl *ThreadFlowLocation, index, total
 
 	// Importance
 	if tfl.Importance != "" {
-		// Map to EIS importance: essential, important, unimportant
+		// Map to CTIS importance: essential, important, unimportant
 		loc.Notes = tfl.Importance + ": " + loc.Notes
 	}
 
@@ -407,12 +407,12 @@ func (p *Parser) convertThreadFlowLocation(tfl *ThreadFlowLocation, index, total
 	for _, kind := range tfl.Kinds {
 		switch kind {
 		case "source":
-			loc.Type = eis.DataFlowLocationSource
+			loc.Type = ctis.DataFlowLocationSource
 			loc.TaintState = "tainted"
 		case "sink":
-			loc.Type = eis.DataFlowLocationSink
+			loc.Type = ctis.DataFlowLocationSink
 		case "sanitizer":
-			loc.Type = eis.DataFlowLocationSanitizer
+			loc.Type = ctis.DataFlowLocationSanitizer
 			loc.TaintState = "sanitized"
 		}
 	}
@@ -450,14 +450,14 @@ func (p *Parser) isSanitizer(tfl *ThreadFlowLocation) bool {
 	return false
 }
 
-// convertLocation converts a SARIF location to EIS FindingLocation.
-func (p *Parser) convertLocation(loc *Location) *eis.FindingLocation {
+// convertLocation converts a SARIF location to CTIS FindingLocation.
+func (p *Parser) convertLocation(loc *Location) *ctis.FindingLocation {
 	if loc == nil || loc.PhysicalLocation == nil {
 		return nil
 	}
 
 	physLoc := loc.PhysicalLocation
-	result := &eis.FindingLocation{}
+	result := &ctis.FindingLocation{}
 
 	// File path
 	if physLoc.ArtifactLocation != nil {
@@ -484,7 +484,7 @@ func (p *Parser) convertLocation(loc *Location) *eis.FindingLocation {
 	// Logical location
 	if len(loc.LogicalLocations) > 0 {
 		logLoc := loc.LogicalLocations[0]
-		result.LogicalLocation = &eis.LogicalLocation{
+		result.LogicalLocation = &ctis.LogicalLocation{
 			Name:               logLoc.Name,
 			FullyQualifiedName: logLoc.FullyQualifiedName,
 			Kind:               logLoc.Kind,
@@ -513,23 +513,23 @@ func (p *Parser) buildTitle(result *Result, rule *Rule) string {
 	return result.RuleID
 }
 
-// convertLevel converts SARIF level to EIS severity.
-func (p *Parser) convertLevel(level string, rule *Rule) eis.Severity {
+// convertLevel converts SARIF level to CTIS severity.
+func (p *Parser) convertLevel(level string, rule *Rule) ctis.Severity {
 	// Try security-severity first (CVSS-like score)
 	if rule != nil && rule.Properties.SecuritySeverity != "" {
 		score, err := strconv.ParseFloat(rule.Properties.SecuritySeverity, 64)
 		if err == nil {
 			switch {
 			case score >= 9.0:
-				return eis.SeverityCritical
+				return ctis.SeverityCritical
 			case score >= 7.0:
-				return eis.SeverityHigh
+				return ctis.SeverityHigh
 			case score >= 4.0:
-				return eis.SeverityMedium
+				return ctis.SeverityMedium
 			case score >= 0.1:
-				return eis.SeverityLow
+				return ctis.SeverityLow
 			default:
-				return eis.SeverityInfo
+				return ctis.SeverityInfo
 			}
 		}
 	}
@@ -537,13 +537,13 @@ func (p *Parser) convertLevel(level string, rule *Rule) eis.Severity {
 	// Fall back to level
 	switch strings.ToLower(level) {
 	case "error":
-		return eis.SeverityHigh
+		return ctis.SeverityHigh
 	case "warning":
-		return eis.SeverityMedium
+		return ctis.SeverityMedium
 	case "note":
-		return eis.SeverityLow
+		return ctis.SeverityLow
 	default:
-		return eis.SeverityInfo
+		return ctis.SeverityInfo
 	}
 }
 
@@ -616,7 +616,7 @@ func (p *Parser) getToolVersion(data []byte) string {
 }
 
 // buildDataFlowSummary creates a human-readable summary of the dataflow.
-func (p *Parser) buildDataFlowSummary(df *eis.DataFlow) string {
+func (p *Parser) buildDataFlowSummary(df *ctis.DataFlow) string {
 	if len(df.Sources) == 0 || len(df.Sinks) == 0 {
 		return ""
 	}
@@ -677,13 +677,13 @@ func slugToTitle(slug string) string {
 // Convenience Functions
 // =============================================================================
 
-// ParseSARIF parses CodeQL SARIF data to EIS findings.
-func ParseSARIF(data []byte) ([]*eis.Finding, error) {
+// ParseSARIF parses CodeQL SARIF data to CTIS findings.
+func ParseSARIF(data []byte) ([]*ctis.Finding, error) {
 	return NewParser().Parse(data)
 }
 
-// ParseSARIFFile parses a CodeQL SARIF file to EIS findings.
-func ParseSARIFFile(path string) ([]*eis.Finding, error) {
+// ParseSARIFFile parses a CodeQL SARIF file to CTIS findings.
+func ParseSARIFFile(path string) ([]*ctis.Finding, error) {
 	data, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -702,9 +702,9 @@ func readFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// ParseToEIS is a convenience function to parse CodeQL SARIF to EIS format.
-// This provides a consistent API with other scanner parsers (e.g., semgrep.ParseToEIS).
-func ParseToEIS(data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// ParseToCTIS is a convenience function to parse CodeQL SARIF to CTIS format.
+// This provides a consistent API with other scanner parsers (e.g., semgrep.ParseToCTIS).
+func ParseToCTIS(data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	parser := NewParser()
 	return parser.ParseToReportWithOptions(data, opts)
 }

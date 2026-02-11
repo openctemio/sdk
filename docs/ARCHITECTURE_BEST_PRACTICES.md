@@ -372,7 +372,7 @@ trivy repo --scanners vuln --ignore-unfixed \
 
 ## 6. Finding Transformation
 
-### 6.1 Unified Finding Format (RIS Schema v1.0)
+### 6.1 Unified Finding Format (CTIS Schema v1.0)
 
 ```go
 type Finding struct {
@@ -415,7 +415,7 @@ type Finding struct {
 }
 ```
 
-**RIS Schema Enhancements (v1.0):**
+**CTIS Schema Enhancements (v1.0):**
 - **DataFlow**: Full taint tracking support (source → intermediates → sink)
 - **LogicalLocation**: Function/class/method context
 - **Suppression**: Finding suppression tracking
@@ -786,7 +786,7 @@ targets:
 - [ ] Trivy scanner (SCA)
 - [ ] Web3 scanners (Slither, Aderyn)
 
-### RIS Schema (v1.0)
+### CTIS Schema (v1.0)
 - [x] Finding with DataFlow support
 - [x] LogicalLocation for code context
 - [x] FindingStatus for workflow
@@ -838,10 +838,10 @@ result, err := scanner.Scan(ctx, "/path/to/repo", &core.SecretScanOptions{
 ```go
 import "github.com/openctemio/sdk/sdk/scanners/gitleaks"
 
-// Parse gitleaks JSON output to RIS format
+// Parse gitleaks JSON output to CTIS format
 parser := &gitleaks.Parser{}
 report, err := parser.Parse(ctx, jsonData, &core.ParseOptions{
-    AssetType:  ris.AssetTypeRepository,
+    AssetType:  ctis.AssetTypeRepository,
     AssetValue: "github.com/org/repo",
     Branch:     "main",
     CommitSHA:  "abc123",

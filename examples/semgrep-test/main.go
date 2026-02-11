@@ -85,28 +85,28 @@ func main() {
 		}
 	}
 
-	// Parse to EIS format
-	fmt.Println("\n--- Converting to EIS ---")
+	// Parse to CTIS format
+	fmt.Println("\n--- Converting to CTIS ---")
 	parser := &semgrep.Parser{}
-	eisReport, err := parser.Parse(ctx, result.RawOutput, &core.ParseOptions{
+	ctisReport, err := parser.Parse(ctx, result.RawOutput, &core.ParseOptions{
 		AssetType:  "repository",
 		AssetValue: target,
 		Branch:     "main",
 	})
 	if err != nil {
-		fmt.Printf("Failed to convert to EIS: %v\n", err)
+		fmt.Printf("Failed to convert to CTIS: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ EIS Report generated\n")
-	fmt.Printf("  - Tool: %s v%s\n", eisReport.Tool.Name, eisReport.Tool.Version)
-	fmt.Printf("  - Findings: %d\n", len(eisReport.Findings))
-	fmt.Printf("  - Assets: %d\n", len(eisReport.Assets))
+	fmt.Printf("✓ CTIS Report generated\n")
+	fmt.Printf("  - Tool: %s v%s\n", ctisReport.Tool.Name, ctisReport.Tool.Version)
+	fmt.Printf("  - Findings: %d\n", len(ctisReport.Findings))
+	fmt.Printf("  - Assets: %d\n", len(ctisReport.Assets))
 
 	// Print first finding as JSON sample
-	if len(eisReport.Findings) > 0 {
-		fmt.Println("\n--- Sample EIS Finding (JSON) ---")
-		sample, _ := json.MarshalIndent(eisReport.Findings[0], "", "  ")
+	if len(ctisReport.Findings) > 0 {
+		fmt.Println("\n--- Sample CTIS Finding (JSON) ---")
+		sample, _ := json.MarshalIndent(ctisReport.Findings[0], "", "  ")
 		fmt.Println(string(sample))
 	}
 

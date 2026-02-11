@@ -105,7 +105,7 @@ Components are the building blocks that perform actual work:
 | Component | Purpose | Example |
 |-----------|---------|---------|
 | **Scanner** | Run security tools | `SemgrepScanner`, `TrivyScanner` |
-| **Parser** | Convert tool output to RIS | `SARIFParser`, `JSONParser` |
+| **Parser** | Convert tool output to CTIS | `SARIFParser`, `JSONParser` |
 | **Connector** | Manage external connections | `GitHubConnector`, `AWSConnector` |
 | **Collector** | Pull data from sources | `RepoCollector`, `AlertCollector` |
 | **Provider** | Bundle Connector + Collectors | `GitHubProvider`, `AWSProvider` |
@@ -116,12 +116,12 @@ Components are the building blocks that perform actual work:
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Scanner    │────▶│    Parser    │────▶│  RIS Report  │
+│   Scanner    │────▶│    Parser    │────▶│  CTIS Report  │
 │  (Semgrep)   │     │  (SARIF)     │     │              │
 └──────────────┘     └──────────────┘     └──────┬───────┘
                                                   │
 ┌──────────────┐     ┌──────────────┐             │
-│  Collector   │────▶│  RIS Report  │─────────────┤
+│  Collector   │────▶│  CTIS Report  │─────────────┤
 │  (GitHub)    │     │              │             │
 └──────────────┘     └──────────────┘             │
                                                   ▼
@@ -144,21 +144,21 @@ Components are the building blocks that perform actual work:
                                           └──────────────┘
 ```
 
-## RIS (OpenCTEM Ingest Schema)
+## CTIS (CTEM Ingest Schema)
 
-All components produce **RIS Reports** - a standardized format for security findings and assets:
+All components produce **CTIS Reports** - a standardized format for security findings and assets:
 
 ```go
-report := ris.NewReport()
-report.Tool = &ris.Tool{Name: "my-scanner", Version: "1.0"}
+report := ctis.NewReport()
+report.Tool = &ctis.Tool{Name: "my-scanner", Version: "1.0"}
 
 // Add findings
-report.Findings = append(report.Findings, ris.Finding{
+report.Findings = append(report.Findings, ctis.Finding{
     ID:       "finding-001",
-    Type:     ris.FindingTypeVulnerability,
+    Type:     ctis.FindingTypeVulnerability,
     Title:    "SQL Injection",
-    Severity: ris.SeverityCritical,
-    Location: &ris.FindingLocation{
+    Severity: ctis.SeverityCritical,
+    Location: &ctis.FindingLocation{
         Path:      "src/db.go",
         StartLine: 42,
     },
@@ -250,7 +250,7 @@ func (p *MyProvider) ListCollectors() []core.Collector {
 
 2. **Rate limiting**: Use `BaseConnector` for external APIs to avoid rate limit errors.
 
-3. **Use RIS format**: Always convert outputs to RIS for consistency.
+3. **Use CTIS format**: Always convert outputs to CTIS for consistency.
 
 4. **Enrich with threat intel**: Use `client.EnrichFindings()` to add EPSS/KEV data.
 
@@ -295,4 +295,4 @@ See [Security Guide](./SECURITY.md) for detailed information.
 - [SDK README](../README.md) - Quick start guide
 - [Security Guide](./SECURITY.md) - Security best practices
 - [API Documentation](../../api/docs/API.md) - Backend API reference
-- [RIS Schema](../pkg/ris/types.go) - Full RIS type definitions
+- [CTIS Schema](../pkg/ctis/types.go) - Full CTIS type definitions
