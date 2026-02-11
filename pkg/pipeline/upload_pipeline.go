@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // Result represents an upload result.
@@ -27,7 +27,7 @@ type Result struct {
 
 // Uploader is the interface for uploading reports.
 type Uploader interface {
-	Upload(ctx context.Context, report *eis.Report) (*Result, error)
+	Upload(ctx context.Context, report *ctis.Report) (*Result, error)
 }
 
 // PipelineConfig configures the upload pipeline.
@@ -78,16 +78,16 @@ func DefaultPipelineConfig() *PipelineConfig {
 
 // QueueItem represents a pending upload.
 type QueueItem struct {
-	ID          string      `json:"id"`
-	Report      *eis.Report `json:"-"` // Not serialized
-	ReportJSON  []byte      `json:"report_json,omitempty"`
-	JobID       string      `json:"job_id,omitempty"`
-	TenantID    string      `json:"tenant_id,omitempty"`
-	ToolName    string      `json:"tool_name"`
-	SubmittedAt time.Time   `json:"submitted_at"`
-	Attempts    int         `json:"attempts"`
-	LastError   string      `json:"last_error,omitempty"`
-	Priority    int         `json:"priority"` // Higher = more urgent
+	ID          string       `json:"id"`
+	Report      *ctis.Report `json:"-"` // Not serialized
+	ReportJSON  []byte       `json:"report_json,omitempty"`
+	JobID       string       `json:"job_id,omitempty"`
+	TenantID    string       `json:"tenant_id,omitempty"`
+	ToolName    string       `json:"tool_name"`
+	SubmittedAt time.Time    `json:"submitted_at"`
+	Attempts    int          `json:"attempts"`
+	LastError   string       `json:"last_error,omitempty"`
+	Priority    int          `json:"priority"` // Higher = more urgent
 }
 
 // Pipeline manages async upload of scan results.
@@ -197,7 +197,7 @@ func (p *Pipeline) Stop(ctx context.Context) error {
 
 // Submit queues a report for async upload.
 // Returns immediately after queueing.
-func (p *Pipeline) Submit(report *eis.Report, opts ...SubmitOption) (string, error) {
+func (p *Pipeline) Submit(report *ctis.Report, opts ...SubmitOption) (string, error) {
 	p.mu.RLock()
 	running := p.running
 	p.mu.RUnlock()

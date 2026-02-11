@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 func TestParser_CreateAssetFromContext(t *testing.T) {
@@ -17,7 +17,7 @@ func TestParser_CreateAssetFromContext(t *testing.T) {
 		opts          *core.ParseOptions
 		wantAsset     bool
 		wantAssetName string
-		wantAssetType eis.AssetType
+		wantAssetType ctis.AssetType
 	}{
 		{
 			name:      "nil options and empty report returns nil asset",
@@ -33,11 +33,11 @@ func TestParser_CreateAssetFromContext(t *testing.T) {
 			},
 			opts: &core.ParseOptions{
 				AssetValue: "github.com/org/repo",
-				AssetType:  eis.AssetTypeRepository,
+				AssetType:  ctis.AssetTypeRepository,
 			},
 			wantAsset:     true,
 			wantAssetName: "github.com/org/repo",
-			wantAssetType: eis.AssetTypeRepository,
+			wantAssetType: ctis.AssetTypeRepository,
 		},
 		{
 			name: "BranchInfo takes priority over artifact",
@@ -46,7 +46,7 @@ func TestParser_CreateAssetFromContext(t *testing.T) {
 				ArtifactType: "container_image",
 			},
 			opts: &core.ParseOptions{
-				BranchInfo: &eis.BranchInfo{
+				BranchInfo: &ctis.BranchInfo{
 					RepositoryURL:   "github.com/org/repo",
 					Name:            "main",
 					IsDefaultBranch: true,
@@ -54,7 +54,7 @@ func TestParser_CreateAssetFromContext(t *testing.T) {
 			},
 			wantAsset:     true,
 			wantAssetName: "github.com/org/repo",
-			wantAssetType: eis.AssetTypeRepository,
+			wantAssetType: ctis.AssetTypeRepository,
 		},
 		{
 			name: "falls back to artifact when no options",
@@ -65,7 +65,7 @@ func TestParser_CreateAssetFromContext(t *testing.T) {
 			opts:          nil,
 			wantAsset:     true,
 			wantAssetName: "myimage:latest",
-			wantAssetType: eis.AssetTypeContainer,
+			wantAssetType: ctis.AssetTypeContainer,
 		},
 		{
 			name: "falls back to artifact when options are empty",
@@ -76,7 +76,7 @@ func TestParser_CreateAssetFromContext(t *testing.T) {
 			opts:          &core.ParseOptions{},
 			wantAsset:     true,
 			wantAssetName: ".",
-			wantAssetType: eis.AssetTypeRepository,
+			wantAssetType: ctis.AssetTypeRepository,
 		},
 	}
 
@@ -110,7 +110,7 @@ func TestParser_ParseWithAssetFromBranchInfo(t *testing.T) {
 	data := []byte(`{"SchemaVersion": 2, "Results": []}`)
 
 	opts := &core.ParseOptions{
-		BranchInfo: &eis.BranchInfo{
+		BranchInfo: &ctis.BranchInfo{
 			RepositoryURL:   "github.com/myorg/myrepo",
 			Name:            "main",
 			CommitSHA:       "abc123",
@@ -131,8 +131,8 @@ func TestParser_ParseWithAssetFromBranchInfo(t *testing.T) {
 	if asset.Value != "github.com/myorg/myrepo" {
 		t.Errorf("asset value = %q, want %q", asset.Value, "github.com/myorg/myrepo")
 	}
-	if asset.Type != eis.AssetTypeRepository {
-		t.Errorf("asset type = %q, want %q", asset.Type, eis.AssetTypeRepository)
+	if asset.Type != ctis.AssetTypeRepository {
+		t.Errorf("asset type = %q, want %q", asset.Type, ctis.AssetTypeRepository)
 	}
 
 	// Verify properties
@@ -169,7 +169,7 @@ func TestParser_HasAssetInfo(t *testing.T) {
 		{
 			name: "with BranchInfo.RepositoryURL",
 			opts: &core.ParseOptions{
-				BranchInfo: &eis.BranchInfo{
+				BranchInfo: &ctis.BranchInfo{
 					RepositoryURL: "github.com/org/repo",
 				},
 			},
@@ -178,7 +178,7 @@ func TestParser_HasAssetInfo(t *testing.T) {
 		{
 			name: "with empty BranchInfo",
 			opts: &core.ParseOptions{
-				BranchInfo: &eis.BranchInfo{},
+				BranchInfo: &ctis.BranchInfo{},
 			},
 			want: false,
 		},

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
+	"github.com/openctemio/sdk/pkg/ctis"
 	"github.com/openctemio/sdk/pkg/retry"
-	"github.com/openctemio/sdk/pkg/eis"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -135,10 +135,10 @@ func TestClient_PushFindings(t *testing.T) {
 		APIKey:  "test-key",
 	})
 
-	report := eis.NewReport()
-	report.Findings = []eis.Finding{
-		{ID: "finding-1", Title: "Test Finding", Severity: eis.SeverityHigh},
-		{ID: "finding-2", Title: "Another Finding", Severity: eis.SeverityMedium},
+	report := ctis.NewReport()
+	report.Findings = []ctis.Finding{
+		{ID: "finding-1", Title: "Test Finding", Severity: ctis.SeverityHigh},
+		{ID: "finding-2", Title: "Another Finding", Severity: ctis.SeverityMedium},
 	}
 
 	result, err := c.PushFindings(context.Background(), report)
@@ -168,8 +168,8 @@ func TestClient_PushFindings_Error(t *testing.T) {
 		RetryDelay: 10 * time.Millisecond,
 	})
 
-	report := eis.NewReport()
-	report.Findings = []eis.Finding{{ID: "f1"}}
+	report := ctis.NewReport()
+	report.Findings = []ctis.Finding{{ID: "f1"}}
 
 	_, err := c.PushFindings(context.Background(), report)
 	if err == nil {
@@ -195,9 +195,9 @@ func TestClient_PushAssets(t *testing.T) {
 		APIKey:  "test-key",
 	})
 
-	report := eis.NewReport()
-	report.Assets = []eis.Asset{
-		{ID: "asset-1", Type: eis.AssetTypeRepository, Value: "github.com/test/repo"},
+	report := ctis.NewReport()
+	report.Assets = []ctis.Asset{
+		{ID: "asset-1", Type: ctis.AssetTypeRepository, Value: "github.com/test/repo"},
 	}
 
 	result, err := c.PushAssets(context.Background(), report)
@@ -524,9 +524,9 @@ func TestClient_PushReport(t *testing.T) {
 		APIKey:  "test-key",
 	})
 
-	report := eis.NewReport()
-	report.Findings = []eis.Finding{{ID: "f1"}}
-	report.Assets = []eis.Asset{{ID: "a1", Type: eis.AssetTypeRepository, Value: "test"}}
+	report := ctis.NewReport()
+	report.Findings = []ctis.Finding{{ID: "f1"}}
+	report.Assets = []ctis.Asset{{ID: "a1", Type: ctis.AssetTypeRepository, Value: "test"}}
 
 	err := c.PushReport(context.Background(), report)
 	if err != nil {

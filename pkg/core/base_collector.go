@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // =============================================================================
@@ -200,20 +200,20 @@ func (c *GitHubCollector) Collect(ctx context.Context, opts *CollectOptions) (*C
 	}
 
 	// Fetch code scanning alerts
-	report := eis.NewReport()
-	report.Tool = &eis.Tool{
+	report := ctis.NewReport()
+	report.Tool = &ctis.Tool{
 		Name:         "GitHub Code Scanning",
 		Capabilities: []string{"sast"},
 	}
 
 	// Add repository as asset
 	repoFullName := fmt.Sprintf("%s/%s", c.owner, c.repo)
-	report.Assets = append(report.Assets, eis.Asset{
+	report.Assets = append(report.Assets, ctis.Asset{
 		ID:          "repo-1",
-		Type:        eis.AssetTypeRepository,
+		Type:        ctis.AssetTypeRepository,
 		Value:       fmt.Sprintf("https://github.com/%s", repoFullName),
 		Name:        repoFullName,
-		Criticality: eis.CriticalityHigh,
+		Criticality: ctis.CriticalityHigh,
 	})
 
 	// Fetch code scanning alerts
@@ -222,7 +222,7 @@ func (c *GitHubCollector) Collect(ctx context.Context, opts *CollectOptions) (*C
 
 	if err := c.FetchJSON(ctx, path, nil, &alerts); err != nil {
 		// Return partial result on error
-		result.Reports = []*eis.Report{report}
+		result.Reports = []*ctis.Report{report}
 		result.CollectedAt = time.Now().Unix()
 		result.DurationMs = time.Since(startTime).Milliseconds()
 		return result, fmt.Errorf("fetch code scanning alerts: %w", err)
@@ -230,16 +230,16 @@ func (c *GitHubCollector) Collect(ctx context.Context, opts *CollectOptions) (*C
 
 	// Convert alerts to findings
 	for i, alert := range alerts {
-		finding := eis.Finding{
+		finding := ctis.Finding{
 			ID:          fmt.Sprintf("github-%d", alert.Number),
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       alert.Rule.Description,
 			Description: alert.MostRecentInstance.Message.Text,
 			Severity:    mapGitHubSeverity(alert.Rule.Severity),
 			Confidence:  mapGitHubConfidence(alert.Rule.SecuritySeverityLevel),
 			RuleID:      alert.Rule.ID,
 			AssetRef:    "repo-1",
-			Location: &eis.FindingLocation{
+			Location: &ctis.FindingLocation{
 				Path:      alert.MostRecentInstance.Location.Path,
 				StartLine: alert.MostRecentInstance.Location.StartLine,
 				EndLine:   alert.MostRecentInstance.Location.EndLine,
@@ -251,7 +251,7 @@ func (c *GitHubCollector) Collect(ctx context.Context, opts *CollectOptions) (*C
 		if len(alert.Rule.Tags) > 0 {
 			for _, tag := range alert.Rule.Tags {
 				if len(tag) > 4 && tag[:4] == "cwe-" {
-					finding.Vulnerability = &eis.VulnerabilityDetails{
+					finding.Vulnerability = &ctis.VulnerabilityDetails{
 						CWEID: tag,
 					}
 					break
@@ -263,7 +263,7 @@ func (c *GitHubCollector) Collect(ctx context.Context, opts *CollectOptions) (*C
 		_ = i // silence unused warning
 	}
 
-	result.Reports = []*eis.Report{report}
+	result.Reports = []*ctis.Report{report}
 	result.TotalItems = len(alerts)
 	result.CollectedAt = time.Now().Unix()
 	result.DurationMs = time.Since(startTime).Milliseconds()
@@ -325,19 +325,19 @@ type GitHubAlertMessage struct {
 	Text string `json:"text"`
 }
 
-// mapGitHubSeverity maps GitHub severity to EIS severity.
-func mapGitHubSeverity(severity string) eis.Severity {
+// mapGitHubSeverity maps GitHub severity to CTIS severity.
+func mapGitHubSeverity(severity string) ctis.Severity {
 	switch severity {
 	case "critical":
-		return eis.SeverityCritical
+		return ctis.SeverityCritical
 	case "high":
-		return eis.SeverityHigh
+		return ctis.SeverityHigh
 	case "medium":
-		return eis.SeverityMedium
+		return ctis.SeverityMedium
 	case "low":
-		return eis.SeverityLow
+		return ctis.SeverityLow
 	default:
-		return eis.SeverityInfo
+		return ctis.SeverityInfo
 	}
 }
 
@@ -401,7 +401,7 @@ func (c *WebhookCollector) Collect(ctx context.Context, opts *CollectOptions) (*
 		return nil, ctx.Err()
 	case data := <-c.dataChan:
 		// Parse the received data
-		report := eis.NewReport()
+		report := ctis.NewReport()
 		if err := json.Unmarshal(data, report); err != nil {
 			return nil, fmt.Errorf("parse webhook data: %w", err)
 		}
@@ -409,7 +409,7 @@ func (c *WebhookCollector) Collect(ctx context.Context, opts *CollectOptions) (*
 		return &CollectResult{
 			SourceName:  c.name,
 			SourceType:  c.sourceType,
-			Reports:     []*eis.Report{report},
+			Reports:     []*ctis.Report{report},
 			TotalItems:  len(report.Findings),
 			CollectedAt: time.Now().Unix(),
 		}, nil

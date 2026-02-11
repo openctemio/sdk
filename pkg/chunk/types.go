@@ -3,7 +3,7 @@ package chunk
 import (
 	"time"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // ReportStatus represents the status of a chunked report.
@@ -87,14 +87,14 @@ type Chunk struct {
 // ChunkData represents the actual data in a chunk.
 // This is what gets serialized, compressed, and uploaded.
 type ChunkData struct {
-	ReportID    string              `json:"report_id"`
-	ChunkIndex  int                 `json:"chunk_index"`
-	TotalChunks int                 `json:"total_chunks"`
-	Tool        *eis.Tool           `json:"tool,omitempty"`
-	Metadata    *eis.ReportMetadata `json:"metadata,omitempty"`
-	Assets      []eis.Asset         `json:"assets,omitempty"`
-	Findings    []eis.Finding       `json:"findings,omitempty"`
-	IsFinal     bool                `json:"is_final"`
+	ReportID    string               `json:"report_id"`
+	ChunkIndex  int                  `json:"chunk_index"`
+	TotalChunks int                  `json:"total_chunks"`
+	Tool        *ctis.Tool           `json:"tool,omitempty"`
+	Metadata    *ctis.ReportMetadata `json:"metadata,omitempty"`
+	Assets      []ctis.Asset         `json:"assets,omitempty"`
+	Findings    []ctis.Finding       `json:"findings,omitempty"`
+	IsFinal     bool                 `json:"is_final"`
 }
 
 // Progress represents upload progress for a report.

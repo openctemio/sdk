@@ -1,7 +1,7 @@
 // Example: Using the SARIF Adapter
 //
 // This example demonstrates how to use the SARIF adapter to convert
-// SARIF output from any security tool to EIS format.
+// SARIF output from any security tool to CTIS format.
 package main
 
 import (
@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Convert to EIS
+	// Convert to CTIS
 	report, err := adapter.Convert(ctx, sarifData, &core.AdapterOptions{
 		SourceName:  "custom-scanner",
 		Repository:  "owner/repo",

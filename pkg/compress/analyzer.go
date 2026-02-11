@@ -3,7 +3,7 @@ package compress
 import (
 	"encoding/json"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // Strategy represents the upload strategy based on payload analysis.
@@ -96,8 +96,8 @@ type AnalysisResult struct {
 	Reason string `json:"reason"`
 }
 
-// Analyze analyzes a EIS report and returns the recommended upload strategy.
-func (a *Analyzer) Analyze(report *eis.Report) (*AnalysisResult, error) {
+// Analyze analyzes a CTIS report and returns the recommended upload strategy.
+func (a *Analyzer) Analyze(report *ctis.Report) (*AnalysisResult, error) {
 	result := &AnalysisResult{
 		FindingsCount: len(report.Findings),
 		AssetsCount:   len(report.Assets),
@@ -173,7 +173,7 @@ func (a *Analyzer) determineStrategy(findingsCount, rawSize int) (Strategy, stri
 // AnalyzeBytes analyzes raw JSON bytes and returns the recommended strategy.
 // This is useful when you already have serialized data.
 func (a *Analyzer) AnalyzeBytes(data []byte) (*AnalysisResult, error) {
-	var report eis.Report
+	var report ctis.Report
 	if err := json.Unmarshal(data, &report); err != nil {
 		return nil, err
 	}

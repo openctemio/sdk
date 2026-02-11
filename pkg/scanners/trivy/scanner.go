@@ -420,7 +420,7 @@ func (s *Scanner) convertToScaResult(report *Report, target string) *core.ScaRes
 				PkgVersion:   vuln.InstalledVersion,
 				Name:         vuln.Title,
 				Description:  vuln.Description,
-				Severity:     GetRISSeverity(vuln.Severity),
+				Severity:     GetCTISSeverity(vuln.Severity),
 				FixedVersion: vuln.FixedVersion,
 				Metadata: &core.VulnerabilityMetadata{
 					CWEs:       vuln.CweIDs,

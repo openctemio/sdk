@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 func TestParser_CreateAssetFromOptions(t *testing.T) {
@@ -16,7 +16,7 @@ func TestParser_CreateAssetFromOptions(t *testing.T) {
 		opts          *core.ParseOptions
 		wantAsset     bool
 		wantAssetName string
-		wantAssetType eis.AssetType
+		wantAssetType ctis.AssetType
 	}{
 		{
 			name:      "nil options returns nil asset",
@@ -32,16 +32,16 @@ func TestParser_CreateAssetFromOptions(t *testing.T) {
 			name: "AssetValue creates asset",
 			opts: &core.ParseOptions{
 				AssetValue: "github.com/org/repo",
-				AssetType:  eis.AssetTypeRepository,
+				AssetType:  ctis.AssetTypeRepository,
 			},
 			wantAsset:     true,
 			wantAssetName: "github.com/org/repo",
-			wantAssetType: eis.AssetTypeRepository,
+			wantAssetType: ctis.AssetTypeRepository,
 		},
 		{
 			name: "BranchInfo creates asset when AssetValue is empty",
 			opts: &core.ParseOptions{
-				BranchInfo: &eis.BranchInfo{
+				BranchInfo: &ctis.BranchInfo{
 					RepositoryURL:   "gitlab.com/mygroup/myproject",
 					Name:            "develop",
 					CommitSHA:       "def456",
@@ -50,7 +50,7 @@ func TestParser_CreateAssetFromOptions(t *testing.T) {
 			},
 			wantAsset:     true,
 			wantAssetName: "gitlab.com/mygroup/myproject",
-			wantAssetType: eis.AssetTypeRepository,
+			wantAssetType: ctis.AssetTypeRepository,
 		},
 	}
 
@@ -84,7 +84,7 @@ func TestParser_ParseWithAssetFromBranchInfo(t *testing.T) {
 	data := []byte(`{"version": "1.0.0", "results": []}`)
 
 	opts := &core.ParseOptions{
-		BranchInfo: &eis.BranchInfo{
+		BranchInfo: &ctis.BranchInfo{
 			RepositoryURL:   "github.com/myorg/myrepo",
 			Name:            "main",
 			CommitSHA:       "abc123",
@@ -105,7 +105,7 @@ func TestParser_ParseWithAssetFromBranchInfo(t *testing.T) {
 	if asset.Value != "github.com/myorg/myrepo" {
 		t.Errorf("asset value = %q, want %q", asset.Value, "github.com/myorg/myrepo")
 	}
-	if asset.Type != eis.AssetTypeRepository {
-		t.Errorf("asset type = %q, want %q", asset.Type, eis.AssetTypeRepository)
+	if asset.Type != ctis.AssetTypeRepository {
+		t.Errorf("asset type = %q, want %q", asset.Type, ctis.AssetTypeRepository)
 	}
 }

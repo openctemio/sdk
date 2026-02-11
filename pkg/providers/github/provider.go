@@ -9,7 +9,7 @@ import (
 
 	"github.com/openctemio/sdk/pkg/connectors/github"
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // Provider is a complete GitHub integration bundle.
@@ -181,20 +181,20 @@ func (c *RepoCollector) Collect(ctx context.Context, opts *core.CollectOptions) 
 		}
 	}
 
-	// Convert to EIS assets
-	report := eis.NewReport()
-	report.Tool = &eis.Tool{Name: c.Name(), Version: "1.0"}
+	// Convert to CTIS assets
+	report := ctis.NewReport()
+	report.Tool = &ctis.Tool{Name: c.Name(), Version: "1.0"}
 	report.Metadata.SourceType = "collector"
 
 	for _, repo := range allRepos {
-		asset := eis.Asset{
+		asset := ctis.Asset{
 			ID:          fmt.Sprintf("repo-%d", repo.ID),
-			Type:        eis.AssetTypeRepository,
+			Type:        ctis.AssetTypeRepository,
 			Value:       repo.FullName,
 			Name:        repo.Name,
 			Description: repo.Description,
-			Technical: &eis.AssetTechnical{
-				Repository: &eis.RepositoryTechnical{
+			Technical: &ctis.AssetTechnical{
+				Repository: &ctis.RepositoryTechnical{
 					Platform:      "github",
 					Owner:         c.connector.Organization(),
 					Name:          repo.Name,
@@ -213,7 +213,7 @@ func (c *RepoCollector) Collect(ctx context.Context, opts *core.CollectOptions) 
 		SourceType:  c.Type(),
 		CollectedAt: time.Now().Unix(),
 		DurationMs:  time.Since(start).Milliseconds(),
-		Reports:     []*eis.Report{report},
+		Reports:     []*ctis.Report{report},
 		TotalItems:  len(allRepos),
 	}, nil
 }
@@ -258,21 +258,21 @@ func (c *CodeScanningCollector) Collect(ctx context.Context, opts *core.CollectO
 		return nil, err
 	}
 
-	// Convert to EIS findings
-	report := eis.NewReport()
-	report.Tool = &eis.Tool{Name: c.Name(), Version: "1.0"}
+	// Convert to CTIS findings
+	report := ctis.NewReport()
+	report.Tool = &ctis.Tool{Name: c.Name(), Version: "1.0"}
 	report.Metadata.SourceType = "collector"
 
 	for _, alert := range alerts {
-		finding := eis.Finding{
+		finding := ctis.Finding{
 			ID:          fmt.Sprintf("github-cs-%d", alert.Number),
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       alert.Rule.Name,
 			Description: alert.Rule.Description,
 			Severity:    mapSeverity(alert.Rule.Severity),
 			RuleID:      alert.Rule.ID,
 			RuleName:    alert.Rule.Name,
-			Location: &eis.FindingLocation{
+			Location: &ctis.FindingLocation{
 				Path:        alert.MostRecentInstance.Location.Path,
 				StartLine:   alert.MostRecentInstance.Location.StartLine,
 				EndLine:     alert.MostRecentInstance.Location.EndLine,
@@ -289,7 +289,7 @@ func (c *CodeScanningCollector) Collect(ctx context.Context, opts *core.CollectO
 		SourceType:  c.Type(),
 		CollectedAt: time.Now().Unix(),
 		DurationMs:  time.Since(start).Milliseconds(),
-		Reports:     []*eis.Report{report},
+		Reports:     []*ctis.Report{report},
 		TotalItems:  len(alerts),
 	}, nil
 }
@@ -332,25 +332,25 @@ func (c *DependabotCollector) Collect(ctx context.Context, opts *core.CollectOpt
 		return nil, err
 	}
 
-	// Convert to EIS findings
-	report := eis.NewReport()
-	report.Tool = &eis.Tool{Name: c.Name(), Version: "1.0"}
+	// Convert to CTIS findings
+	report := ctis.NewReport()
+	report.Tool = &ctis.Tool{Name: c.Name(), Version: "1.0"}
 	report.Metadata.SourceType = "collector"
 
 	for _, alert := range alerts {
-		finding := eis.Finding{
+		finding := ctis.Finding{
 			ID:          fmt.Sprintf("github-dep-%d", alert.Number),
-			Type:        eis.FindingTypeVulnerability,
+			Type:        ctis.FindingTypeVulnerability,
 			Title:       alert.SecurityAdvisory.Summary,
 			Description: alert.SecurityAdvisory.Description,
 			Severity:    mapSeverity(alert.SecurityAdvisory.Severity),
-			Vulnerability: &eis.VulnerabilityDetails{
+			Vulnerability: &ctis.VulnerabilityDetails{
 				CVEID:                alert.SecurityAdvisory.CVEID,
 				Package:              alert.Dependency.Package.Name,
 				AffectedVersionRange: alert.SecurityVulnerability.VulnerableVersionRange,
 				Ecosystem:            alert.Dependency.Package.Ecosystem,
 			},
-			Location: &eis.FindingLocation{
+			Location: &ctis.FindingLocation{
 				Path: alert.Dependency.ManifestPath,
 			},
 			References: []string{alert.HTMLURL, alert.SecurityAdvisory.GHSAID},
@@ -368,7 +368,7 @@ func (c *DependabotCollector) Collect(ctx context.Context, opts *core.CollectOpt
 		SourceType:  c.Type(),
 		CollectedAt: time.Now().Unix(),
 		DurationMs:  time.Since(start).Milliseconds(),
-		Reports:     []*eis.Report{report},
+		Reports:     []*ctis.Report{report},
 		TotalItems:  len(alerts),
 	}, nil
 }
@@ -405,17 +405,17 @@ func splitString(s, sep string) []string {
 	return result
 }
 
-func mapSeverity(severity string) eis.Severity {
+func mapSeverity(severity string) ctis.Severity {
 	switch severity {
 	case "critical":
-		return eis.SeverityCritical
+		return ctis.SeverityCritical
 	case "high":
-		return eis.SeverityHigh
+		return ctis.SeverityHigh
 	case "medium":
-		return eis.SeverityMedium
+		return ctis.SeverityMedium
 	case "low":
-		return eis.SeverityLow
+		return ctis.SeverityLow
 	default:
-		return eis.SeverityInfo
+		return ctis.SeverityInfo
 	}
 }

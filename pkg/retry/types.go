@@ -25,7 +25,7 @@ package retry
 import (
 	"time"
 
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
 // ItemType defines the type of queued item.
@@ -65,7 +65,7 @@ type QueueItem struct {
 	Status      ItemStatus `json:"status"`      // Current status
 
 	// Payload
-	Report *eis.Report `json:"report"` // The EIS report to push
+	Report *ctis.Report `json:"report"` // The CTIS report to push
 
 	// Retry tracking
 	Attempts    int       `json:"attempts"`     // Number of retry attempts made

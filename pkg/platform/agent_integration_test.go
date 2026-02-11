@@ -10,9 +10,9 @@ import (
 
 	"github.com/openctemio/sdk/pkg/audit"
 	"github.com/openctemio/sdk/pkg/chunk"
+	"github.com/openctemio/sdk/pkg/ctis"
 	"github.com/openctemio/sdk/pkg/pipeline"
 	"github.com/openctemio/sdk/pkg/resource"
-	"github.com/openctemio/sdk/pkg/eis"
 )
 
 // mockJobExecutor implements JobExecutor for testing
@@ -32,12 +32,12 @@ func (m *mockJobExecutor) Execute(ctx context.Context, job *JobInfo) (*JobResult
 
 // mockPipelineUploader implements pipeline.Uploader for testing
 type mockPipelineUploader struct {
-	uploadFunc func(ctx context.Context, report *eis.Report) (*pipeline.Result, error)
+	uploadFunc func(ctx context.Context, report *ctis.Report) (*pipeline.Result, error)
 	uploads    int
 	mu         sync.Mutex
 }
 
-func (m *mockPipelineUploader) Upload(ctx context.Context, report *eis.Report) (*pipeline.Result, error) {
+func (m *mockPipelineUploader) Upload(ctx context.Context, report *ctis.Report) (*pipeline.Result, error) {
 	m.mu.Lock()
 	m.uploads++
 	m.mu.Unlock()
@@ -264,9 +264,9 @@ func TestPlatformAgent_SubmitReport(t *testing.T) {
 	defer agent.uploadPipeline.Stop(ctx)
 
 	// Submit a report
-	report := &eis.Report{
-		Tool: &eis.Tool{Name: "test-tool"},
-		Findings: []eis.Finding{
+	report := &ctis.Report{
+		Tool: &ctis.Tool{Name: "test-tool"},
+		Findings: []ctis.Finding{
 			{Title: "Finding 1"},
 			{Title: "Finding 2"},
 		},
@@ -314,18 +314,18 @@ func TestPlatformAgent_NeedsChunking(t *testing.T) {
 	}
 
 	// Small report - shouldn't need chunking
-	smallReport := &eis.Report{
-		Tool:     &eis.Tool{Name: "test-tool"},
-		Findings: []eis.Finding{{Title: "Finding 1"}},
+	smallReport := &ctis.Report{
+		Tool:     &ctis.Tool{Name: "test-tool"},
+		Findings: []ctis.Finding{{Title: "Finding 1"}},
 	}
 	if agent.NeedsChunking(smallReport) {
 		t.Error("Small report should not need chunking")
 	}
 
 	// Large report - should need chunking
-	largeReport := &eis.Report{
-		Tool:     &eis.Tool{Name: "test-tool"},
-		Findings: make([]eis.Finding, 20), // 20 findings > threshold of 10
+	largeReport := &ctis.Report{
+		Tool:     &ctis.Tool{Name: "test-tool"},
+		Findings: make([]ctis.Finding, 20), // 20 findings > threshold of 10
 	}
 	for i := range largeReport.Findings {
 		largeReport.Findings[i].Title = "Finding"

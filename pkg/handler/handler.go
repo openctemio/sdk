@@ -3,8 +3,8 @@
 package handler
 
 import (
+	"github.com/openctemio/sdk/pkg/ctis"
 	"github.com/openctemio/sdk/pkg/gitenv"
-	"github.com/openctemio/sdk/pkg/eis"
 	"github.com/openctemio/sdk/pkg/strategy"
 )
 
@@ -34,7 +34,7 @@ type ScanInfo struct {
 
 // HandleFindingsParams contains parameters for handling findings.
 type HandleFindingsParams struct {
-	Report       *eis.Report
+	Report       *ctis.Report
 	Strategy     strategy.ScanStrategy
 	ChangedFiles []strategy.ChangedFile
 	GitEnv       gitenv.GitEnv

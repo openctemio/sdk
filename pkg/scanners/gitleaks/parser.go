@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/openctemio/sdk/pkg/core"
-	"github.com/openctemio/sdk/pkg/eis"
+	"github.com/openctemio/sdk/pkg/ctis"
 )
 
-// Parser converts gitleaks output to EIS format.
+// Parser converts gitleaks output to CTIS format.
 type Parser struct{}
 
 // Name returns the parser name.
@@ -29,21 +29,21 @@ func (p *Parser) CanParse(data []byte) bool {
 	return err == nil
 }
 
-// Parse converts gitleaks JSON output to EIS report.
-func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// Parse converts gitleaks JSON output to CTIS report.
+func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	// Parse gitleaks findings
 	findings, err := ParseJSONBytes(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse gitleaks output: %w", err)
 	}
 
-	// Create EIS report
-	report := eis.NewReport()
+	// Create CTIS report
+	report := ctis.NewReport()
 	report.Metadata.SourceType = "scanner"
 	report.Metadata.Timestamp = time.Now()
 
 	// Set tool info
-	report.Tool = &eis.Tool{
+	report.Tool = &ctis.Tool{
 		Name:   "gitleaks",
 		Vendor: "Gitleaks",
 		Capabilities: []string{
@@ -60,7 +60,7 @@ func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions
 		report.Metadata.Branch = opts.BranchInfo
 	} else if opts != nil && (opts.Branch != "" || opts.CommitSHA != "") {
 		// Legacy: create BranchInfo from individual fields
-		report.Metadata.Branch = &eis.BranchInfo{
+		report.Metadata.Branch = &ctis.BranchInfo{
 			Name:      opts.Branch,
 			CommitSHA: opts.CommitSHA,
 		}
@@ -80,15 +80,15 @@ func (p *Parser) Parse(ctx context.Context, data []byte, opts *core.ParseOptions
 	return report, nil
 }
 
-// convertFinding converts a gitleaks finding to EIS finding.
-func (p *Parser) convertFinding(f Finding, index int, opts *core.ParseOptions) eis.Finding {
+// convertFinding converts a gitleaks finding to CTIS finding.
+func (p *Parser) convertFinding(f Finding, index int, opts *core.ParseOptions) ctis.Finding {
 	title := fmt.Sprintf("%s detected in %s:%d", f.Description, f.File, f.StartLine)
-	finding := eis.Finding{
+	finding := ctis.Finding{
 		ID:         fmt.Sprintf("finding-%d", index+1),
-		Type:       eis.FindingTypeSecret,
+		Type:       ctis.FindingTypeSecret,
 		Title:      title,
-		Message:    title, // Primary display text
-		Severity:   eis.SeverityHigh, // Secrets are always high severity
+		Message:    title,             // Primary display text
+		Severity:   ctis.SeverityHigh, // Secrets are always high severity
 		Confidence: 90,
 		Category:   "Hardcoded Secret",
 		RuleID:     f.RuleID,
@@ -105,7 +105,7 @@ func (p *Parser) convertFinding(f Finding, index int, opts *core.ParseOptions) e
 	}
 
 	// Set location
-	finding.Location = &eis.FindingLocation{
+	finding.Location = &ctis.FindingLocation{
 		Path:        f.File,
 		StartLine:   f.StartLine,
 		EndLine:     f.EndLine,
@@ -160,7 +160,7 @@ func (p *Parser) convertFinding(f Finding, index int, opts *core.ParseOptions) e
 	}
 
 	// Set secret details
-	finding.Secret = &eis.SecretDetails{
+	finding.Secret = &ctis.SecretDetails{
 		SecretType:  GetSecretType(f.RuleID),
 		Service:     GetServiceName(f.RuleID),
 		MaskedValue: core.MaskSecret(f.Secret),
@@ -186,7 +186,7 @@ func (p *Parser) convertFinding(f Finding, index int, opts *core.ParseOptions) e
 	}
 
 	// Add remediation guidance
-	finding.Remediation = &eis.Remediation{
+	finding.Remediation = &ctis.Remediation{
 		Recommendation: fmt.Sprintf("Remove the %s from the codebase and rotate/revoke it immediately.", GetSecretType(f.RuleID)),
 		Steps: []string{
 			"1. Revoke the exposed secret immediately",
@@ -217,7 +217,7 @@ func (p *Parser) convertFinding(f Finding, index int, opts *core.ParseOptions) e
 
 // createAssetFromOptions creates an asset from parse options or branch info.
 // Priority: opts.AssetValue > opts.BranchInfo.RepositoryURL
-func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
+func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *ctis.Asset {
 	if opts == nil {
 		return nil
 	}
@@ -231,15 +231,15 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 	if opts.AssetValue != "" {
 		assetType := opts.AssetType
 		if assetType == "" {
-			assetType = eis.AssetTypeRepository
+			assetType = ctis.AssetTypeRepository
 		}
-		return &eis.Asset{
+		return &ctis.Asset{
 			ID:          assetID,
 			Type:        assetType,
 			Value:       opts.AssetValue,
 			Name:        opts.AssetValue,
-			Criticality: eis.CriticalityHigh,
-			Properties: eis.Properties{
+			Criticality: ctis.CriticalityHigh,
+			Properties: ctis.Properties{
 				"source": "parse_options",
 			},
 		}
@@ -247,7 +247,7 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 
 	// Priority 2: BranchInfo.RepositoryURL
 	if opts.BranchInfo != nil && opts.BranchInfo.RepositoryURL != "" {
-		props := eis.Properties{
+		props := ctis.Properties{
 			"source":       "branch_info",
 			"auto_created": true,
 		}
@@ -259,12 +259,12 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 		}
 		props["is_default_branch"] = opts.BranchInfo.IsDefaultBranch
 
-		return &eis.Asset{
+		return &ctis.Asset{
 			ID:          assetID,
-			Type:        eis.AssetTypeRepository,
+			Type:        ctis.AssetTypeRepository,
 			Value:       opts.BranchInfo.RepositoryURL,
 			Name:        opts.BranchInfo.RepositoryURL,
-			Criticality: eis.CriticalityHigh,
+			Criticality: ctis.CriticalityHigh,
 			Properties:  props,
 		}
 	}
@@ -272,8 +272,8 @@ func (p *Parser) createAssetFromOptions(opts *core.ParseOptions) *eis.Asset {
 	return nil
 }
 
-// ParseToEIS is a convenience function to parse gitleaks JSON to EIS.
-func ParseToEIS(data []byte, opts *core.ParseOptions) (*eis.Report, error) {
+// ParseToCTIS is a convenience function to parse gitleaks JSON to CTIS.
+func ParseToCTIS(data []byte, opts *core.ParseOptions) (*ctis.Report, error) {
 	parser := &Parser{}
 	return parser.Parse(context.Background(), data, opts)
 }
