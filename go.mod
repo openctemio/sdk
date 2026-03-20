@@ -1,6 +1,6 @@
 module github.com/openctemio/sdk
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/google/go-github/v74 v74.0.0
@@ -10,7 +10,7 @@ require (
 	gitlab.com/gitlab-org/api/client-go v1.27.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sys v0.40.0
-	golang.org/x/time v0.14.0
+	golang.org/x/time v0.15.0
 	google.golang.org/grpc v1.78.0
 	modernc.org/sqlite v1.44.3
 )
